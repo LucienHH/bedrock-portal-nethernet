@@ -34,11 +34,13 @@ export const defaultOptions = {
   // Milliseconds to wait before aborting connection attempt
   connectTimeout: 9000,
   // server: What compression algorithm to use by default, either `none`, `deflate` or `snappy`
-  compressionAlgorithm: 'deflate',
+  compressionAlgorithm: 'deflate' as const,
   // server and client: On Deflate, what compression level to use, between 1 and 9
   compressionLevel: 7,
   // server: If true, only compress if a payload is larger than compressionThreshold
   compressionThreshold: 512,
+  // server and client: The protocol version to use
+  protocolVersion: Versions[CURRENT_VERSION],
 }
 
 export function validateOptions(options: Options) {

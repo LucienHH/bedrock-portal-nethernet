@@ -13,7 +13,6 @@ import { Connections } from './nethernet/Connection'
 import { CompressionAlgorithm } from './transforms/framer'
 
 const debug = debugFn('bedrock-portal-nethernet')
-
 export class Server extends EventEmitter {
 
   options: Options
@@ -42,7 +41,7 @@ export class Server extends EventEmitter {
 
   nethernet?: Nethernet
 
-  constructor(options: Options) {
+  constructor(options: Partial<Options> = {}) {
     super()
 
     this.options = { ...defaultOptions, ...options }
