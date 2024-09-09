@@ -1,0 +1,7 @@
+dist
+package-lock.json
+node_modules/
+archive
+.vscode
+*-cache.json
+dist/

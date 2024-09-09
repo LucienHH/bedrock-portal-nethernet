@@ -1,0 +1,43 @@
+{
+  "name": "bedrock-portal-nethernet",
+  "version": "1.0.0",
+  "description": "A simple server implementation for the Bedrock Edition Nethernet protocol",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "lint": "eslint --ignore-path .gitignore .",
+    "fix": "eslint --fix --ignore-path .gitignore ."
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@lucienhh/werift": "^0.0.3",
+    "debug": "^4.3.4",
+    "json-bigint": "^1.0.0",
+    "jsonwebtoken": "^9.0.0",
+    "minecraft-data": "^3.0.0",
+    "prismarine-auth": "github:LucienHH/prismarine-auth#playfab",
+    "prismarine-nbt": "^2.0.0",
+    "protodef": "^1.14.0",
+    "sdp-transform": "^2.14.2",
+    "uuid-1345": "^1.0.2",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.12",
+    "@types/json-bigint": "^1.0.4",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/multicast-dns": "^7.2.4",
+    "@types/node": "^20.10.6",
+    "@types/sdp-transform": "^2.4.9",
+    "@types/uuid": "^9.0.8",
+    "@types/uuid-1345": "^0.99.25",
+    "@types/ws": "^8.5.12",
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "bedrock-portal-nethernet": "file:.",
+    "eslint": "^8.33.0",
+    "typescript": "^5.3.3"
+  }
+}

@@ -1,0 +1,9 @@
+node_modules/
+.github/
+.gitignore
+.eslintrc.json
+.npmignore
+tsconfig.json
+examples/
+src/
+*-cache.json

@@ -1,0 +1,22 @@
+{
+	"compilerOptions": {
+		"target": "ES2023",
+    "moduleResolution": "Node",
+    "module": "CommonJS",
+		"outDir": "./dist",
+		"strict": true,
+		"sourceMap": false,
+		"alwaysStrict": true,
+		"removeComments": false,
+		"noImplicitAny": true,
+		"noUnusedLocals": true,
+		"noImplicitReturns": true,
+		"noUnusedParameters": false,
+		"skipLibCheck": false,
+		"esModuleInterop": true,
+		"declaration": true,
+		"allowJs": true
+	},
+	"include": ["./src/**/*", "src/types"],
+	"exclude": ["node_modules"]
+}
