@@ -1,6 +1,6 @@
 import { sign } from 'jsonwebtoken'
-import { KeyExportOptions, createHash, createPublicKey, diffieHellman, generateKeyPairSync } from 'crypto'
-import { ClientStatus, Player } from '../serverPlayer'
+import { KeyExportOptions, generateKeyPairSync } from 'crypto'
+import { Player } from '../serverPlayer'
 
 const debug = require('debug')('bedrock-portal-nethernet')
 
@@ -49,45 +49,7 @@ export function KeyExchange(client: Player) {
     // client.startEncryption(initial)
   }
 
-  function startServerboundEncryption(token: { token: string }) {
-    debug('[encrypt] Starting serverbound encryption', token)
-    const jwt = token?.token
-
-    if (!jwt) {
-      throw Error('Server did not return a valid JWT, cannot start encryption')
-    }
-
-    // No verification here, not needed
-
-    const [header, payload] = jwt.split('.').map(k => Buffer.from(k, 'base64'))
-    const head = JSON.parse(String(header))
-    const body = JSON.parse(String(payload))
-
-    const pubKeyDer = createPublicKey({ key: Buffer.from(head.x5u, 'base64'), format: 'der', type: 'spki' })
-
-    // Shared secret from the client's public key + our private key
-    client.sharedSecret = diffieHellman({ privateKey: client.ecdhKeyPair.privateKey, publicKey: pubKeyDer })
-
-    const salt = Buffer.from(body.salt, 'base64')
-    const secretHash = createHash('sha256')
-    secretHash.update(salt)
-    secretHash.update(client.sharedSecret)
-
-    client.secretKeyBytes = secretHash.digest()
-    // const iv = client.secretKeyBytes.slice(0, 16)
-    // client.startEncryption(iv)
-
-    // It works! First encrypted packet :)
-
-    client.write('client_to_server_handshake', {})
-
-    client.emit('join')
-
-    client.status = ClientStatus.Initializing
-  }
-
   client.on('server.client_handshake', startClientboundEncryption)
-  client.on('client.server_handshake', startServerboundEncryption)
 }
 
 function toBase64(string: string) {
