@@ -41,6 +41,26 @@ export function createProtocol(version: string) {
   catch {}
 
   const protocol = require('minecraft-data')('bedrock_' + version).protocol
+
+  // Temporary fix until 1.21.30 is supported by minecraft-data
+  protocol.types.packet_transfer = [
+    'container',
+    [
+      {
+        name: 'server_address',
+        type: 'string',
+      },
+      {
+        name: 'port',
+        type: 'lu16',
+      },
+      {
+        name: 'reload_world',
+        type: 'bool',
+      },
+    ],
+  ]
+
   const compiler = new ProtoDefCompiler()
   compiler.addTypesToCompile(protocol.types)
   compiler.addTypes(require('../datatypes/compiler-minecraft'))
