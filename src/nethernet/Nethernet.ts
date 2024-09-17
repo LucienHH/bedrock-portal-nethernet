@@ -2,7 +2,7 @@ import { parse } from 'sdp-transform'
 import { Connections } from './Connection'
 import { getRandomUint64, Signal } from '../signaling/Signal'
 import { SignalStructure, SignalType } from '../signaling/struct'
-import { RTCIceCandidate, RTCPeerConnection } from '@lucienhh/werift'
+import { RTCIceCandidate, RTCPeerConnection } from 'werift'
 
 const debugFn = require('debug')('bedrock-portal-nethernet')
 

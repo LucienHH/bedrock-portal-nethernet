@@ -1,6 +1,6 @@
 import { Nethernet } from './Nethernet'
 import { SessionDescription } from 'sdp-transform'
-import { RTCDataChannel, RTCPeerConnection } from '@lucienhh/werift'
+import { RTCDataChannel, RTCPeerConnection } from 'werift'
 
 const debugFn = require('debug')('bedrock-portal-nethernet')
 

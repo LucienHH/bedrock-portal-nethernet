@@ -12,7 +12,6 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@lucienhh/werift": "^1.0.0",
     "debug": "^4.3.4",
     "json-bigint": "^1.0.0",
     "jsonwebtoken": "^9.0.0",
@@ -22,6 +21,7 @@
     "protodef": "^1.14.0",
     "sdp-transform": "^2.14.2",
     "uuid-1345": "^1.0.2",
+    "werift": "^0.19.9",
     "ws": "^8.18.0"
   },
   "devDependencies": {
