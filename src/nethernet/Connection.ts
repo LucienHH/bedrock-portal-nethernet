@@ -26,8 +26,6 @@ export class Connections {
 
   buf: Buffer | null
 
-  packets: Buffer[]
-
   constructor(nethernet: Nethernet, id: bigint, networkId:bigint, webrtc: RTCPeerConnection, description: SessionDescription) {
 
     this.nethernet = nethernet
@@ -48,8 +46,6 @@ export class Connections {
 
     this.buf = Buffer.alloc(0)
 
-    this.packets = []
-
     this.webrtc.onDataChannel.subscribe(channel => {
 
       console.log('onDataChannel', channel.label)
@@ -59,13 +55,13 @@ export class Connections {
 
         channel.onmessage = (msg) => this.handleMessage(msg.data)
 
-        channel.onclose = () => console.log('ReliableDataChannel closed')
+        // channel.onclose = () => console.log('ReliableDataChannel closed')
 
       }
       if(channel.label === 'UnreliableDataChannel') {
         this.unreliable = channel
 
-        channel.onclose = () => console.log('UnreliableDataChannel closed')
+        // channel.onclose = () => console.log('UnreliableDataChannel closed')
       }
     })
 
@@ -94,7 +90,7 @@ export class Connections {
 
     debugFn(`handleMessage segments: ${segments}`)
 
-    data = data.slice(1)
+    data = data.subarray(1)
 
     if (this.promisedSegments > 0 && this.promisedSegments - 1 !== segments) {
       throw new Error(`Invalid promised segments: expected ${this.promisedSegments - 1}, got ${segments}`)
@@ -107,8 +103,6 @@ export class Connections {
     if (this.promisedSegments > 0) {
       return
     }
-
-    this.packets.push(this.buf)
 
     this.onPacket(this.buf)
 
@@ -130,57 +124,29 @@ export class Connections {
       data = Buffer.from(data)
     }
 
-    if (data.length > maxMessageSize) {
-      let segments = Math.ceil(data.length / maxMessageSize)
+    let segments = Math.ceil(data.length / maxMessageSize)
 
-      for (let i = 0; i < data.length; i += maxMessageSize) {
-        segments--
+    for (let i = 0; i < data.length; i += maxMessageSize) {
+      segments--
 
-        let end = i + maxMessageSize
-        if (end > data.length) {
-          end = data.length
-        }
+      let end = i + maxMessageSize
+      if (end > data.length) end = data.length
 
-        const frag = data.slice(i, end)
+      const frag = data.subarray(i, end)
+      const message = Buffer.concat([Buffer.from([segments]), frag])
 
-        const message = Buffer.concat([Buffer.from([segments]), frag])
-
-        debugFn('Sending fragment', segments)
-
-        this.reliable.send(message)
-
-        n += frag.length
-      }
-
-      if (segments !== 0) {
-        throw new Error('Segments count did not reach 0 after sending all fragments')
-      }
-    }
-    else {
-      debugFn('Sending single segment')
-
-      const message = Buffer.concat([Buffer.from([0]), data])
+      debugFn('Sending fragment', segments, 'header', message[0])
 
       this.reliable.send(message)
-      n = data.length
+
+      n += frag.length
+    }
+
+    if (segments !== 0) {
+      throw new Error('Segments count did not reach 0 after sending all fragments')
     }
 
     return n
-  }
-
-  read(buffer: Buffer) {
-
-    if (this.packets.length === 0) {
-      return 0
-    }
-
-    const packet = this.packets.shift()
-
-    if (!packet) {
-      return 0
-    }
-
-    return packet.copy(buffer)
   }
 
   close() {
