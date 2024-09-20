@@ -212,7 +212,7 @@ export class Signal extends EventEmitter {
 
   write(signal: SignalStructure) {
     if (!this.ws) throw new Error('WebSocket not connected')
-    const message = { Type: MessageType.Signal, To: signal.networkID, Message: signal.marshalText() }
+    const message = { Type: MessageType.Signal, To: signal.networkID, Message: signal.toString() }
 
     debug('Sending Signal', message)
 
