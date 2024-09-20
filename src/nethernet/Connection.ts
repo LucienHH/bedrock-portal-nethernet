@@ -46,7 +46,7 @@ export class Connections {
 
     this.buf = Buffer.alloc(0)
 
-    this.webrtc.onDataChannel.subscribe(channel => {
+    this.webrtc.ondatachannel = ({ channel }) => {
 
       console.log('onDataChannel', channel.label)
 
@@ -54,25 +54,21 @@ export class Connections {
         this.reliable = channel
 
         channel.onmessage = (msg) => this.handleMessage(msg.data)
-
-        // channel.onclose = () => console.log('ReliableDataChannel closed')
-
       }
       if(channel.label === 'UnreliableDataChannel') {
         this.unreliable = channel
-
-        // channel.onclose = () => console.log('UnreliableDataChannel closed')
       }
-    })
+    }
 
-    this.webrtc.connectionStateChange.subscribe((state) => {
+    this.webrtc.onconnectionstatechange = () => {
+      const state = this.webrtc.connectionState
       if (state === 'connected') {
         this.nethernet.onOpenConnection(this)
       }
       if (state === 'disconnected') {
         this.nethernet.onCloseConnection(this.id, 'disconnected')
       }
-    })
+    }
 
   }
 
