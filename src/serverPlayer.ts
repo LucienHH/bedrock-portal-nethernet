@@ -144,12 +144,12 @@ export class Player extends EventEmitter {
   }
 
   handleClientProtocolVersion(clientVersion: number) {
-    // if (this.server.options.protocolVersion) {
-    //   if (this.server.options.protocolVersion < clientVersion) {
-    //     this.sendDisconnectStatus('failed_spawn') // client too new
-    //     return false
-    //   }
-    // }
+    if (this.server.options.protocolVersion) {
+      if (this.server.options.protocolVersion < clientVersion) {
+        this.sendDisconnectStatus('failed_spawn') // client too new
+        return false
+      }
+    }
     if (clientVersion < Number(MIN_VERSION)) {
       this.sendDisconnectStatus('failed_client') // client too old
       return false
