@@ -27,6 +27,9 @@ export class Server extends EventEmitter {
 
   conLog: (message: any, ...optionalParams: any[]) => void
 
+  batchHeader: number[]
+  disableEncryption: boolean
+
   features!: {
     compressorInHeader: boolean
   }
@@ -36,6 +39,8 @@ export class Server extends EventEmitter {
   compressionLevel!: number
 
   compressionThreshold!: number
+
+  compressionHeader!: number
 
   signaling?: Signal
 
@@ -56,6 +61,9 @@ export class Server extends EventEmitter {
     this.clientCount = 0
     this.conLog = debug
 
+    this.batchHeader = []
+    this.disableEncryption = true
+
     this.setCompressor(this.options.compressionAlgorithm, this.options.compressionLevel, this.options.compressionThreshold)
   }
 
@@ -73,19 +81,22 @@ export class Server extends EventEmitter {
 
   setCompressor(algorithm: CompressionAlgorithm, level = 1, threshold = 256) {
     switch (algorithm) {
-      case 'none':
-        this.compressionAlgorithm = 'none'
+      case CompressionAlgorithm.None:
+        this.compressionAlgorithm = CompressionAlgorithm.None
         this.compressionLevel = 0
+        this.compressionHeader = 255
         break
-      case 'deflate':
-        this.compressionAlgorithm = 'deflate'
+      case CompressionAlgorithm.Deflate:
+        this.compressionAlgorithm = CompressionAlgorithm.Deflate
         this.compressionLevel = level
         this.compressionThreshold = threshold
+        this.compressionHeader = 0
         break
-      case 'snappy':
-        this.compressionAlgorithm = 'snappy'
+      case CompressionAlgorithm.Snappy:
+        this.compressionAlgorithm = CompressionAlgorithm.Snappy
         this.compressionLevel = level
         this.compressionThreshold = threshold
+        this.compressionHeader = 1
         break
       default:
         throw new Error(`Unknown compression algorithm: ${algorithm}`)

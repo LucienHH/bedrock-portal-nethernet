@@ -1,11 +1,13 @@
 import mcData from 'minecraft-data'
 
+import { CompressionAlgorithm } from './transforms/framer'
+
 export type Options = {
   version: string
   autoInitPlayer: boolean
   offline: boolean
   connectTimeout: number
-  compressionAlgorithm: 'none' | 'deflate' | 'snappy'
+  compressionAlgorithm: CompressionAlgorithm
   compressionLevel: number
   compressionThreshold: number
   protocolVersion: number
@@ -34,7 +36,7 @@ export const defaultOptions = {
   // Milliseconds to wait before aborting connection attempt
   connectTimeout: 9000,
   // server: What compression algorithm to use by default, either `none`, `deflate` or `snappy`
-  compressionAlgorithm: 'deflate' as const,
+  compressionAlgorithm: CompressionAlgorithm.Deflate,
   // server and client: On Deflate, what compression level to use, between 1 and 9
   compressionLevel: 7,
   // server: If true, only compress if a payload is larger than compressionThreshold

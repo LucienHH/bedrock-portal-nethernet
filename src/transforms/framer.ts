@@ -3,12 +3,18 @@ import zlib from 'zlib'
 
 import { Player } from '../serverPlayer'
 
-export type CompressionAlgorithm = 'none' | 'deflate' | 'snappy'
+export enum CompressionAlgorithm {
+  None = 'none',
+  Deflate = 'deflate',
+  Snappy = 'snappy'
+}
 
 // Concatenates packets into one batch packet, and adds length prefixs.
 export class Framer {
 
   packets: Buffer[]
+
+  batchHeader: number[]
 
   compressor: CompressionAlgorithm
 
@@ -16,10 +22,14 @@ export class Framer {
 
   compressionThreshold: number
 
+  compressionHeader: number
+
   writeCompressor: boolean
 
   constructor(client: Player) {
     this.packets = []
+
+    this.batchHeader = client.batchHeader
 
     this.compressor = client.compressionAlgorithm || 'none'
 
@@ -27,15 +37,17 @@ export class Framer {
 
     this.compressionThreshold = client.compressionThreshold
 
+    this.compressionHeader = client.compressionHeader || 0
+
     this.writeCompressor = client.features.compressorInHeader && client.compressionReady
   }
 
   // No compression in base class
   compress(buffer: Buffer) {
     switch (this.compressor) {
-      case 'deflate': return zlib.deflateRawSync(buffer, { level: this.compressionLevel })
-      case 'snappy': throw Error('Snappy compression not implemented')
-      case 'none': return buffer
+      case CompressionAlgorithm.Deflate: return zlib.deflateRawSync(buffer, { level: this.compressionLevel })
+      case CompressionAlgorithm.Snappy: throw Error('Snappy compression not implemented')
+      case CompressionAlgorithm.None: return buffer
     }
   }
 
@@ -54,11 +66,16 @@ export class Framer {
     }
   }
 
-  static decode(client: Player, buffer: Buffer) {
-    // Read header
-    // if (buf[0] !== 0xfe) throw Error('bad batch packet header ' + buf[0])
-    // const buffer = buf.slice(1)
-    // Decompress
+  static decode(client: Player, buf: Buffer) {
+
+    const headerLength = client.batchHeader.length
+
+    if (buf.length < headerLength) {
+      throw new Error('Unexpected EOF')
+    }
+
+    const buffer = buf.slice(headerLength)
+
     let decompressed
     if (client.features.compressorInHeader && client.compressionReady) {
       decompressed = this.decompress(buffer[0], buffer.slice(1))
@@ -78,11 +95,10 @@ export class Framer {
 
   encode() {
     const buf = Buffer.concat(this.packets)
-    const compressed = (buf.length > this.compressionThreshold) ? this.compress(buf) : buf
-    // const header = this.writeCompressor ? [0xfe, 0] : [0xfe]
-    return this.writeCompressor
-      ? Buffer.concat([Buffer.from([255]), compressed])
-      : compressed
+    const shouldCompress = (buf.length > this.compressionThreshold)
+    const compressed = shouldCompress ? this.compress(buf) : buf
+    const header = this.writeCompressor ? [...this.batchHeader, shouldCompress ? this.compressionHeader : 255] : this.batchHeader
+    return Buffer.concat([Buffer.from(header), compressed])
   }
 
   addEncodedPacket(chunk: Buffer) {

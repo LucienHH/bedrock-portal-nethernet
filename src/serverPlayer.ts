@@ -47,6 +47,9 @@ export class Player extends EventEmitter {
     compressorInHeader: boolean
   }
 
+  batchHeader: number[]
+  disableEncryption: boolean
+
   compressionAlgorithm!: CompressionAlgorithm
   compressionLevel!: number
   compressionThreshold!: number
@@ -90,10 +93,14 @@ export class Player extends EventEmitter {
       this.outLog = (...args) => debug('S -> C', ...args)
     }
 
+    this.batchHeader = this.server.batchHeader
+    this.disableEncryption = this.server.disableEncryption
+
     // Compression is server-wide
     this.compressionAlgorithm = this.server.compressionAlgorithm
     this.compressionLevel = this.server.compressionLevel
     this.compressionThreshold = this.server.compressionThreshold
+    this.compressionHeader = this.server.compressionHeader
 
     this._sentNetworkSettings = false // 1.19.30+
 
