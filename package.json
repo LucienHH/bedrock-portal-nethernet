@@ -20,6 +20,7 @@
     "prismarine-nbt": "^2.0.0",
     "protodef": "^1.14.0",
     "sdp-transform": "^2.14.2",
+    "tiny-typed-emitter": "^2.1.0",
     "uuid-1345": "^1.0.2",
     "werift": "^0.19.9",
     "ws": "^8.18.0"

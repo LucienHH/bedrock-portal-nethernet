@@ -44,4 +44,4 @@ export function nextUUID() {
   return uuidFrom(Date.now().toString())
 }
 
-export const isDebug = process.env.DEBUG?.includes('bedrock-portal-nethernet')
+export const isDebug = process.env.DEBUG?.includes('bedrock-portal')

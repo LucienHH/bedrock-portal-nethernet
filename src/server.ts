@@ -1,5 +1,5 @@
 import debugFn from 'debug'
-import { EventEmitter } from 'events'
+import { TypedEmitter } from 'tiny-typed-emitter'
 import type { Authflow } from 'prismarine-auth'
 
 import { Player } from './serverPlayer'
@@ -7,13 +7,19 @@ import { sleep } from './datatypes/util'
 import { Options, defaultOptions, validateOptions, Versions } from './options'
 import { createDeserializer, createSerializer } from './transforms/serializer'
 
-import { Signal } from './signaling/Signal'
-import { Nethernet } from './nethernet/Nethernet'
-import { Connections } from './nethernet/Connection'
+import { Signal } from './signaling/signal'
+
+import { Server as NethernetServer } from './nethernet/server'
+import { Connection } from './nethernet/connection'
 import { CompressionAlgorithm } from './transforms/framer'
 
 const debug = debugFn('bedrock-portal-nethernet')
-export class Server extends EventEmitter {
+
+interface ServerEvents {
+  connect: (player: Player) => void
+}
+
+export class Server extends TypedEmitter<ServerEvents> {
 
   options: Options
 
@@ -44,7 +50,7 @@ export class Server extends EventEmitter {
 
   signaling?: Signal
 
-  nethernet?: Nethernet
+  nethernet?: NethernetServer
 
   constructor(options: Partial<Options> = {}) {
     super()
@@ -119,10 +125,10 @@ export class Server extends EventEmitter {
     return this.options.protocolVersion >= (typeof version === 'string' ? Versions[version] : version)
   }
 
-  onOpenConnection = (conn: Connections) => {
-    this.conLog('New connection: ', conn?.id)
+  onOpenConnection = (conn: Connection) => {
+    this.conLog('New connection: ', conn?.connectionId)
     const player = new Player(this, conn)
-    this.clients.set(conn.id, player)
+    this.clients.set(conn.connectionId, player)
     this.clientCount++
     this.emit('connect', player)
   }
@@ -154,15 +160,13 @@ export class Server extends EventEmitter {
     process.nextTick(() => client.onDecryptedPacket(buffer))
   }
 
-  async listen(auth: Authflow, networkID: bigint) {
+  async listen(auth: Authflow, networkId: bigint) {
 
-    this.signaling = new Signal(auth, networkID)
+    this.signaling = new Signal(auth, networkId)
 
-    this.nethernet = new Nethernet(this.signaling, networkID)
+    this.nethernet = new NethernetServer(this.signaling, networkId)
 
     await this.nethernet.listen()
-
-    this.conLog('Listening on')
 
     this.nethernet.onOpenConnection = this.onOpenConnection
 
@@ -170,23 +174,23 @@ export class Server extends EventEmitter {
 
     this.nethernet.onEncapsulated = this.onEncapsulated
 
-    // this.nethernet.onClose = (reason) => this.close(reason || 'Nethernet closed')
-
   }
 
   async close(disconnectReason = 'Server closed') {
 
     for (const player of this.clients.values()) {
-      player.close(disconnectReason)
+      player.disconnect(disconnectReason)
     }
 
     this.clients.clear()
-
     this.clientCount = 0
 
-    // Allow some time for client to get disconnect before closing connection.
     await sleep(60)
+    this.nethernet?.close()
 
-    await this.signaling?.destroy(false)
+    if (this.signaling) {
+      await this.signaling.destroy()
+    }
+
   }
 }

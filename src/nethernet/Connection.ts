@@ -1,22 +1,17 @@
-import { Nethernet } from './Nethernet'
-import { SessionDescription } from 'sdp-transform'
+import { Server } from './server'
 import { RTCDataChannel, RTCPeerConnection } from 'werift'
 
 const debugFn = require('debug')('bedrock-portal-nethernet')
 
 export const maxMessageSize = 10_000
 
-export class Connections {
+export class Connection {
 
-  nethernet: Nethernet
+  nethernet: Server
 
-  id: bigint
+  connectionId: bigint
 
-  networkId: bigint
-
-  webrtc: RTCPeerConnection
-
-  description: SessionDescription
+  rtcConnection: RTCPeerConnection
 
   reliable: RTCDataChannel | null
 
@@ -26,17 +21,13 @@ export class Connections {
 
   buf: Buffer | null
 
-  constructor(nethernet: Nethernet, id: bigint, networkId:bigint, webrtc: RTCPeerConnection, description: SessionDescription) {
+  constructor(nethernet: Server, connectionId: bigint, rtcConnection: RTCPeerConnection) {
 
     this.nethernet = nethernet
 
-    this.id = id
+    this.connectionId = connectionId
 
-    this.networkId = networkId
-
-    this.webrtc = webrtc
-
-    this.description = description
+    this.rtcConnection = rtcConnection
 
     this.reliable = null
 
@@ -46,30 +37,16 @@ export class Connections {
 
     this.buf = Buffer.alloc(0)
 
-    this.webrtc.ondatachannel = ({ channel }) => {
+  }
 
-      console.log('onDataChannel', channel.label)
-
-      if(channel.label === 'ReliableDataChannel') {
-        this.reliable = channel
-
-        channel.onmessage = (msg) => this.handleMessage(msg.data)
-      }
-      if(channel.label === 'UnreliableDataChannel') {
-        this.unreliable = channel
-      }
+  setChannels(reliable: RTCDataChannel | null, unreliable?: RTCDataChannel) {
+    if (reliable) {
+      this.reliable = reliable
+      this.reliable.onmessage = (msg) => this.handleMessage(msg.data)
     }
-
-    this.webrtc.onconnectionstatechange = () => {
-      const state = this.webrtc.connectionState
-      if (state === 'connected') {
-        this.nethernet.onOpenConnection(this)
-      }
-      if (state === 'disconnected') {
-        this.nethernet.onCloseConnection(this.id, 'disconnected')
-      }
+    if (unreliable) {
+      this.unreliable = unreliable
     }
-
   }
 
   handleMessage(data: string | Buffer) {
@@ -106,7 +83,7 @@ export class Connections {
   }
 
   onPacket(packet: Buffer) {
-    this.nethernet.onEncapsulated(packet, this.id)
+    this.nethernet.onEncapsulated(packet, this.connectionId)
   }
 
   write(data: string | Buffer) {
@@ -151,6 +128,9 @@ export class Connections {
     }
     if (this.unreliable) {
       this.unreliable.close()
+    }
+    if (this.rtcConnection) {
+      this.rtcConnection.close()
     }
   }
 

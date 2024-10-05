@@ -1,12 +1,13 @@
-import { MIN_VERSION, Options, Versions } from './options'
-import { serialize, isDebug } from './datatypes/util'
-import { KeyExchange } from './handshake/keyExchange'
-import LoginVerify from './handshake/loginVerify'
-import { Server } from './server'
 import { KeyPairKeyObjectResult } from 'crypto'
-import { Connections } from './nethernet/Connection'
+import { TypedEmitter } from 'tiny-typed-emitter'
+
+import { Server } from './server'
+import LoginVerify from './handshake/loginVerify'
+import { Connection } from './nethernet/connection'
+import { KeyExchange } from './handshake/keyExchange'
+import { serialize, isDebug } from './datatypes/util'
+import { MIN_VERSION, Options, Versions } from './options'
 import { CompressionAlgorithm, Framer } from './transforms/framer'
-import EventEmitter from 'events'
 
 const debug = require('debug')('bedrock-portal-nethernet')
 
@@ -18,7 +19,18 @@ export const ClientStatus = {
   Initialized: 4, // play_status spawn sent by server, client responded with SetPlayerInit packet
 }
 
-export class Player extends EventEmitter {
+interface PlayerEvents {
+  status: (status: number) => void
+  loggingIn: (body: any) => void
+  login: (body: any) => void
+  'server.client_handshake': (body: any) => void
+  join: () => void
+  spawn: () => void
+  close: () => void
+  packet: (packet: any) => void
+}
+
+export class Player extends TypedEmitter<PlayerEvents> {
 
   server: Server
 
@@ -53,8 +65,9 @@ export class Player extends EventEmitter {
   compressionAlgorithm!: CompressionAlgorithm
   compressionLevel!: number
   compressionThreshold!: number
+  compressionHeader: number
 
-  connection: Connections
+  connection: Connection
 
   options: Options
 
@@ -74,7 +87,7 @@ export class Player extends EventEmitter {
 
   #status: number
 
-  constructor(server: Server, connection: Connections) {
+  constructor(server: Server, connection: Connection) {
     super()
     this.server = server
     this.features = server.features
@@ -182,7 +195,7 @@ export class Player extends EventEmitter {
       var { key, userData, skinData } = this.decodeLoginJWT(authChain.chain, skinChain) // eslint-disable-line
     }
     catch (e) {
-      debug(this.connection.id, e)
+      debug(this.connection.connectionId, e)
       this.disconnect('Server authentication error')
       return
     }
@@ -223,7 +236,7 @@ export class Player extends EventEmitter {
       message: reason,
       filtered_message: '',
     })
-    this.server.conLog('Kicked ', this.connection.id, reason)
+    this.server.conLog('Kicked ', this.connection.connectionId, reason)
     setTimeout(() => this.close('kick'), 100) // Allow time for message to be recieved.
   }
 
@@ -239,7 +252,7 @@ export class Player extends EventEmitter {
   close(reason: string) {
     if (this.status !== ClientStatus.Disconnected) {
       this.emit('close') // Emit close once
-      if (!reason) this.inLog?.('Client closed connection', this.connection.id)
+      if (!reason) this.inLog?.('Client closed connection', this.connection.connectionId)
     }
 
     this.connection?.close()
@@ -253,7 +266,7 @@ export class Player extends EventEmitter {
     }
     catch (e) {
       this.disconnect('Server error')
-      debug('Dropping packet from', this.connection.id, e)
+      debug('Dropping packet from', this.connection.connectionId, e)
       return
     }
 

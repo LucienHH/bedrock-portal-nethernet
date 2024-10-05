@@ -9,32 +9,26 @@ export class SignalStructure {
 
   type: string
 
-  connectionID: bigint
+  connectionId: bigint
 
   data: string
 
-  networkID: bigint
+  networkId: bigint
 
-  constructor(type: string, connectionID: bigint, data: string, networkID: bigint) {
+  constructor(type: string, connectionId: bigint, data: string, networkId: bigint) {
     this.type = type
-    this.connectionID = connectionID
+    this.connectionId = connectionId
     this.data = data
-    this.networkID = networkID
+    this.networkId = networkId
   }
 
   toString() {
-    return `${this.type} ${this.connectionID.toString()} ${this.data}`
+    return `${this.type} ${this.connectionId} ${this.data}`
   }
 
-  static fromWSMessage(networkID: bigint, message: string) {
-    const segments = message.split(' ', 3)
-
-    if (segments.length !== 3) {
-      throw new Error(`unexpected segmentations: ${segments.length}`)
-    }
-
+  static fromString(message: string, networkId: bigint) {
     const [type, connectionId, ...data] = message.split(' ')
 
-    return new SignalStructure(type, BigInt(connectionId), data.join(' '), networkID)
+    return new this(type, BigInt(connectionId), data.join(' '), networkId)
   }
 }

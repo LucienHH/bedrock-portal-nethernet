@@ -30,26 +30,22 @@ export class Signal extends EventEmitter {
 
   ws: WebSocket | null
 
-  authorization: string | null
-
   pingInterval: NodeJS.Timeout | null
 
-  networkID: bigint
+  networkId: bigint
 
   credentials: any
 
-  constructor(authflow: Authflow, networkID: bigint) {
+  constructor(authflow: Authflow, networkId: bigint) {
     super()
 
     this.authflow = authflow
 
+    this.networkId = networkId
+
     this.ws = null
 
-    this.authorization = null
-
     this.pingInterval = null
-
-    this.networkID = networkID
 
     this.credentials = null
 
@@ -58,6 +54,8 @@ export class Signal extends EventEmitter {
   async connect() {
     if (this.ws?.readyState === WebSocket.OPEN) throw new Error('Already connected signaling server')
     await this.init()
+
+    await once(this, 'credentials')
   }
 
   async destroy(resume = false) {
@@ -106,22 +104,18 @@ export class Signal extends EventEmitter {
 
     const xbl = await this.authflow.getMinecraftServicesToken()
 
-    this.authorization = xbl.mcToken
-
     debug('Fetched XBL Token', xbl)
 
-    const address = `wss://signal.franchise.minecraft-services.net/ws/v1.0/signaling/${this.networkID.toString()}`
+    const address = `wss://signal.franchise.minecraft-services.net/ws/v1.0/signaling/${this.networkId}`
 
     debug('Connecting to Signal', address)
 
     const ws = new WebSocket(address, {
-      headers: { Authorization: this.authorization },
+      headers: { Authorization: xbl.mcToken },
     })
 
-    await once(ws, 'open')
-
     this.pingInterval = setInterval(() => {
-      if (this.ws) {
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         this.ws.send(JSON.stringify({ Type: MessageType.RequestPing }))
       }
     })
@@ -179,12 +173,22 @@ export class Signal extends EventEmitter {
           return
         }
 
-        this.credentials = JSON.parse(message.Message)
+        this.credentials = JSON.parse(message.Message).TurnAuthServers.map((credential: any) => {
+          return {
+            urls: credential.Urls,
+            credential: credential.Password,
+            username: credential.Username,
+          }
+        })
+
+        this.emit('credentials', this.credentials)
 
         break
       }
       case MessageType.Signal: {
-        this.emit('signal', SignalStructure.fromWSMessage(BigInt(message.From), message.Message))
+        const signal = SignalStructure.fromString(message.Message, BigInt(message.From))
+
+        this.emit('signal', signal)
         break
       }
       case MessageType.RequestPing: {
@@ -194,29 +198,13 @@ export class Signal extends EventEmitter {
 
   }
 
-  // TODO: this
-  async getCredentials() {
-    if (!this.credentials) {
-      return new Promise((resolve) => {
-        const interval = setInterval(() => {
-          if (this.credentials) {
-            clearInterval(interval)
-            resolve(this.credentials)
-          }
-        }, 1000)
-      })
-    }
-
-    return this.credentials
-  }
-
   write(signal: SignalStructure) {
     if (!this.ws) throw new Error('WebSocket not connected')
-    const message = { Type: MessageType.Signal, To: signal.networkID, Message: signal.toString() }
+    const message = stringify({ Type: MessageType.Signal, To: signal.networkId, Message: signal.toString() })
 
     debug('Sending Signal', message)
 
-    this.ws.send(stringify(message))
+    this.ws.send(message)
   }
 
 }

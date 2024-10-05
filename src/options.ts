@@ -16,7 +16,7 @@ export type Options = {
 // Minimum supported version (< will be kicked)
 export const MIN_VERSION = '1.16.201'
 // Currently supported verson. Note, clients with newer versions can still connect as long as data is in minecraft-data
-export const CURRENT_VERSION = '1.21.20'
+export const CURRENT_VERSION = '1.21.30'
 
 export const Versions = Object.fromEntries(mcData.versions.bedrock.filter(e => e.releaseType === 'release').map(e => [e.minecraftVersion, e.version]))
 
