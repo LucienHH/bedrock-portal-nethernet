@@ -1,5 +1,4 @@
 const { ProtoDefCompiler, CompiledProtodef } = require('protodef').Compiler
-// @ts-expect-error protodef does not have types
 import { FullPacketParser, Serializer } from 'protodef'
 import { join } from 'path'
 import fs from 'fs'
@@ -74,6 +73,5 @@ export function createSerializer(version: string) {
 
 export function createDeserializer(version: string) {
   const proto = createProtocol(version)
-  // @ts-expect-error mcpe_packet is not in the protodef types
   return new Parser(proto, 'mcpe_packet')
 }
