@@ -41,37 +41,6 @@ export function createProtocol(version: string) {
 
   const protocol = require('minecraft-data')('bedrock_' + version).protocol
 
-  // Temporary fix until 1.21.50 is supported by minecraft-data
-  protocol.types.resource_packs_info = [
-    'container',
-    [
-      {
-        name: 'must_accept',
-        type: 'bool',
-      },
-      {
-        name: 'has_addons',
-        type: 'bool',
-      },
-      {
-        name: 'has_scripts',
-        type: 'bool',
-      },
-      {
-        name: 'texture_packs',
-        type: 'TexturePackInfos',
-      },
-      {
-        name: 'world_template_uuid',
-        type: 'uuid',
-      },
-      {
-        name: 'world_template_version',
-        type: 'string',
-      },
-    ],
-  ]
-
   const compiler = new ProtoDefCompiler()
   compiler.addTypesToCompile(protocol.types)
   compiler.addTypes(require('../datatypes/compiler-minecraft'))
