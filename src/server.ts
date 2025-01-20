@@ -162,7 +162,7 @@ export class Server extends TypedEmitter<ServerEvents> {
 
   async listen(auth: Authflow, networkId: bigint) {
 
-    this.signaling = new Signal(auth, networkId)
+    this.signaling = new Signal(auth, networkId, this.options.version)
 
     this.nethernet = new NethernetServer(this.signaling, networkId)
 

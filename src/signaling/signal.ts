@@ -34,14 +34,18 @@ export class Signal extends EventEmitter {
 
   networkId: bigint
 
+  version: string
+
   credentials: any
 
-  constructor(authflow: Authflow, networkId: bigint) {
+  constructor(authflow: Authflow, networkId: bigint, version: string) {
     super()
 
     this.authflow = authflow
 
     this.networkId = networkId
+
+    this.version = version
 
     this.ws = null
 
@@ -102,7 +106,7 @@ export class Signal extends EventEmitter {
 
   async init() {
 
-    const xbl = await this.authflow.getMinecraftBedrockServicesToken()
+    const xbl = await this.authflow.getMinecraftBedrockServicesToken({ version: this.version })
 
     debug('Fetched XBL Token', xbl)
 
