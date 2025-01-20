@@ -102,7 +102,7 @@ export class Signal extends EventEmitter {
 
   async init() {
 
-    const xbl = await this.authflow.getMinecraftServicesToken()
+    const xbl = await this.authflow.getMinecraftBedrockServicesToken()
 
     debug('Fetched XBL Token', xbl)
 
