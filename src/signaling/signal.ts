@@ -106,7 +106,7 @@ export class Signal extends EventEmitter {
 
   async init() {
 
-    const xbl = await this.authflow.getMinecraftBedrockServicesToken({ version: '1.21.51' })
+    const xbl = await this.authflow.getMinecraftBedrockServicesToken({ version: this.version })
 
     debug('Fetched XBL Token', xbl)
 
