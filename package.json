@@ -15,7 +15,6 @@
     "debug": "^4.3.4",
     "json-bigint": "^1.0.0",
     "jsonwebtoken": "^9.0.0",
-    "minecraft-data": "^3.0.0",
     "prismarine-auth": "github:LucienHH/prismarine-auth#playfab",
     "prismarine-nbt": "^2.0.0",
     "protodef": "^1.14.0",

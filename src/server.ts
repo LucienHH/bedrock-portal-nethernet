@@ -4,7 +4,7 @@ import type { Authflow } from 'prismarine-auth'
 
 import { Player } from './serverPlayer'
 import { sleep } from './datatypes/util'
-import { Options, defaultOptions, validateOptions, Versions } from './options'
+import { Options, defaultOptions } from './options'
 import { createDeserializer, createSerializer } from './transforms/serializer'
 
 import { Signal } from './signaling/signal'
@@ -36,10 +36,6 @@ export class Server extends TypedEmitter<ServerEvents> {
   batchHeader: number[]
   disableEncryption: boolean
 
-  features!: {
-    compressorInHeader: boolean
-  }
-
   compressionAlgorithm!: CompressionAlgorithm
 
   compressionLevel!: number
@@ -56,9 +52,6 @@ export class Server extends TypedEmitter<ServerEvents> {
     super()
 
     this.options = { ...defaultOptions, ...options }
-    this.validateOptions()
-
-    this._loadFeatures(this.options.version)
 
     this.serializer = createSerializer(this.options.version)
     this.deserializer = createDeserializer(this.options.version)
@@ -71,18 +64,6 @@ export class Server extends TypedEmitter<ServerEvents> {
     this.disableEncryption = true
 
     this.setCompressor(this.options.compressionAlgorithm, this.options.compressionLevel, this.options.compressionThreshold)
-  }
-
-  _loadFeatures(version: string) {
-    try {
-      const mcData = require('minecraft-data')('bedrock_' + version)
-      this.features = {
-        compressorInHeader: mcData.supportFeature('compressorInPacketHeader'),
-      }
-    }
-    catch (e) {
-      throw new Error(`Unsupported version: '${version}', no data available`)
-    }
   }
 
   setCompressor(algorithm: CompressionAlgorithm, level = 1, threshold = 256) {
@@ -107,22 +88,6 @@ export class Server extends TypedEmitter<ServerEvents> {
       default:
         throw new Error(`Unknown compression algorithm: ${algorithm}`)
     }
-  }
-
-  validateOptions() {
-    validateOptions(this.options)
-  }
-
-  versionLessThan(version: string | number) {
-    return this.options.protocolVersion < (typeof version === 'string' ? Versions[version] : version)
-  }
-
-  versionGreaterThan(version: string | number) {
-    return this.options.protocolVersion > (typeof version === 'string' ? Versions[version] : version)
-  }
-
-  versionGreaterThanOrEqualTo(version: string | number) {
-    return this.options.protocolVersion >= (typeof version === 'string' ? Versions[version] : version)
   }
 
   onOpenConnection = (conn: Connection) => {

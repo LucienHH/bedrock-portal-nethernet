@@ -39,7 +39,7 @@ export class Framer {
 
     this.compressionHeader = client.compressionHeader || 0
 
-    this.writeCompressor = client.features.compressorInHeader && client.compressionReady
+    this.writeCompressor = client.compressionReady
   }
 
   // No compression in base class
@@ -77,7 +77,7 @@ export class Framer {
     const buffer = buf.slice(headerLength)
 
     let decompressed
-    if (client.features.compressorInHeader && client.compressionReady) {
+    if (client.compressionReady) {
       decompressed = this.decompress(buffer[0], buffer.slice(1))
     }
     else {

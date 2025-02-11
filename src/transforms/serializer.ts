@@ -39,7 +39,7 @@ export function createProtocol(version: string) {
   // eslint-disable-next-line no-empty
   catch {}
 
-  const protocol = require('minecraft-data')('bedrock_' + version).protocol
+  const protocol = JSON.parse(fs.readFileSync('./protocol.json', 'utf8'))
 
   const compiler = new ProtoDefCompiler()
   compiler.addTypesToCompile(protocol.types)

@@ -6,7 +6,7 @@ import LoginVerify from './handshake/loginVerify'
 import { Connection } from './nethernet/connection'
 import { KeyExchange } from './handshake/keyExchange'
 import { serialize, isDebug } from './datatypes/util'
-import { MIN_VERSION, Options, Versions } from './options'
+import { CURRENT_VERSION, Options } from './options'
 import { CompressionAlgorithm, Framer } from './transforms/framer'
 
 const debug = require('debug')('bedrock-portal-nethernet')
@@ -55,10 +55,6 @@ export class Player extends TypedEmitter<PlayerEvents> {
 
   deserializer: any
 
-  features!: {
-    compressorInHeader: boolean
-  }
-
   batchHeader: number[]
   disableEncryption: boolean
 
@@ -90,7 +86,6 @@ export class Player extends TypedEmitter<PlayerEvents> {
   constructor(server: Server, connection: Connection) {
     super()
     this.server = server
-    this.features = server.features
     this.serializer = server.serializer
     this.deserializer = server.deserializer
     this.connection = connection
@@ -135,22 +130,6 @@ export class Player extends TypedEmitter<PlayerEvents> {
     this.#status = val
   }
 
-  versionLessThan(version: string | number) {
-    return this.options.protocolVersion < (typeof version === 'string' ? Versions[version] : version)
-  }
-
-  versionGreaterThan(version: string | number) {
-    return this.options.protocolVersion > (typeof version === 'string' ? Versions[version] : version)
-  }
-
-  versionGreaterThanOrEqualTo(version: string | number) {
-    return this.options.protocolVersion >= (typeof version === 'string' ? Versions[version] : version)
-  }
-
-  versionLessThanOrEqualTo(version: string | number) {
-    return this.options.protocolVersion <= (typeof version === 'string' ? Versions[version] : version)
-  }
-
   sendNetworkSettings() {
     this.write('network_settings', {
       compression_threshold: this.server.compressionThreshold,
@@ -170,7 +149,7 @@ export class Player extends TypedEmitter<PlayerEvents> {
     //     return false
     //   }
     // }
-    if (clientVersion < Number(MIN_VERSION)) {
+    if (clientVersion < Number(CURRENT_VERSION)) {
       this.sendDisconnectStatus('failed_client') // client too old
       return false
     }
@@ -309,12 +288,13 @@ export class Player extends TypedEmitter<PlayerEvents> {
     // In the future, we can send down the whole item palette if we need
     // but since it's only one item, we can just make a single variable.
     let shieldItemID
-    for (const state of palette) {
-      if (state.name === 'minecraft:shield') {
-        shieldItemID = state.runtime_id
+    for (const item of palette) {
+      if (item.name === 'minecraft:shield') {
+        shieldItemID = item.network_id
         break
       }
     }
+
     if (shieldItemID) {
       this.serializer.proto.setVariable('ShieldItemID', shieldItemID)
       this.deserializer.proto.setVariable('ShieldItemID', shieldItemID)
@@ -323,7 +303,7 @@ export class Player extends TypedEmitter<PlayerEvents> {
 
   write(name: string, params: any) {
     this.outLog?.(name, params)
-    if (name === 'start_game') this.updateItemPalette(params.itemstates)
+    if (name === 'item_registry') this.updateItemPalette(params.items)
 
     const batch = new Framer(this)
 
