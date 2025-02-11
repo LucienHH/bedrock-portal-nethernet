@@ -3,6 +3,8 @@ import { FullPacketParser, Serializer } from 'protodef'
 import { join } from 'path'
 import fs from 'fs'
 
+import protocol from '../protocol'
+
 export class Parser extends FullPacketParser {
   dumpFailedBuffer(packet: Buffer, prefix = '') {
     if (packet.length > 1000) {
@@ -38,8 +40,6 @@ export function createProtocol(version: string) {
   }
   // eslint-disable-next-line no-empty
   catch {}
-
-  const protocol = JSON.parse(fs.readFileSync('./protocol.json', 'utf8'))
 
   const compiler = new ProtoDefCompiler()
   compiler.addTypesToCompile(protocol.types)
