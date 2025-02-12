@@ -271,6 +271,24 @@ export default {
               name: 'component_based',
               type: 'bool',
             },
+            {
+              name: 'version',
+              type: [
+                'mapper',
+                {
+                  type: 'zigzag32',
+                  mappings: {
+                    0: 'legacy',
+                    1: 'data_driven',
+                    2: 'none',
+                  },
+                },
+              ],
+            },
+            {
+              name: 'nbt',
+              type: 'nbt',
+            },
           ],
         ],
       },
@@ -707,8 +725,9 @@ export default {
                     16: 'minecart_display_block',
                     17: 'minecart_display_offset',
                     18: 'minecart_has_display',
-                    20: 'old_swell',
-                    21: 'swell_dir',
+                    19: 'horse_type',
+                    20: 'creeper_swell',
+                    21: 'creeper_swell_direction',
                     22: 'charge_amount',
                     23: 'enderman_held_runtime_id',
                     24: 'entity_age',
@@ -738,7 +757,7 @@ export default {
                     49: 'wither_target_1',
                     50: 'wither_target_2',
                     51: 'wither_target_3',
-                    52: 'aerial_attack',
+                    52: 'wither_aerial_attack',
                     53: 'boundingbox_width',
                     54: 'boundingbox_height',
                     55: 'fuse_length',
@@ -746,7 +765,7 @@ export default {
                     57: 'rider_rotation_locked',
                     58: 'rider_max_rotation',
                     59: 'rider_min_rotation',
-                    60: 'rider_rotation_offset',
+                    60: 'rider_seat_rotation_offset',
                     61: 'area_effect_cloud_radius',
                     62: 'area_effect_cloud_waiting',
                     63: 'area_effect_cloud_particle_id',
@@ -763,7 +782,7 @@ export default {
                     74: 'controlling_rider_seat_number',
                     75: 'strength',
                     76: 'max_strength',
-                    77: 'spell_casting_color',
+                    77: 'evoker_spell_casting_color',
                     78: 'limited_life',
                     79: 'armor_stand_pose_index',
                     80: 'ender_crystal_time_offset',
@@ -781,11 +800,11 @@ export default {
                     92: 'flags_extended',
                     93: 'laying_amount',
                     94: 'laying_amount_previous',
-                    95: 'duration',
-                    96: 'spawn_time',
-                    97: 'change_rate',
-                    98: 'change_on_pickup',
-                    99: 'pickup_count',
+                    95: 'area_effect_cloud_duration',
+                    96: 'area_effect_cloud_spawn_time',
+                    97: 'area_effect_cloud_change_rate',
+                    98: 'area_effect_cloud_change_on_pickup',
+                    99: 'area_effect_cloud_pickup_count',
                     100: 'interact_text',
                     101: 'trade_tier',
                     102: 'max_trade_tier',
@@ -806,19 +825,20 @@ export default {
                     117: 'nearby_cured_discount_timestamp',
                     118: 'hitbox',
                     119: 'is_buoyant',
-                    120: 'base_runtime_id',
-                    121: 'freezing_effect_strength',
-                    122: 'buoyancy_data',
-                    123: 'goat_horn_count',
-                    124: 'update_properties',
-                    125: 'movement_sound_distance_offset',
-                    126: 'heartbeat_interval_ticks',
-                    127: 'heartbeat_sound_event',
-                    128: 'player_last_death_position',
-                    129: 'player_last_death_dimension',
-                    130: 'player_has_died',
-                    131: 'collision_box',
-                    132: 'visible_mob_effects',
+                    120: 'freezing_effect_strength',
+                    121: 'buoyancy_data',
+                    122: 'goat_horn_count',
+                    123: 'update_properties',
+                    124: 'movement_sound_distance_offset',
+                    125: 'heartbeat_interval_ticks',
+                    126: 'heartbeat_sound_event',
+                    127: 'player_last_death_position',
+                    128: 'player_last_death_dimension',
+                    129: 'player_has_died',
+                    130: 'collision_box',
+                    131: 'visible_mob_effects',
+                    132: 'filtered_name',
+                    133: 'bed_enter_position',
                   },
                 },
               ],
@@ -1011,6 +1031,7 @@ export default {
           'timer_flag_2',
           'timer_flag_3',
           'body_rotation_blocked',
+          'render_when_invisible',
         ],
       },
     ],
@@ -3102,31 +3123,6 @@ export default {
         ],
       },
     ],
-    ItemData: [
-      'container',
-      [
-        {
-          name: 'name',
-          type: 'string',
-        },
-        {
-          name: 'network_id',
-          type: 'li16',
-        },
-        {
-          name: 'component_based',
-          type: 'bool',
-        },
-        {
-          name: 'version',
-          type: 'varint',
-        },
-        {
-          name: 'nbt',
-          type: 'nbt',
-        },
-      ],
-    ],
     CommandOrigin: [
       'container',
       [
@@ -4465,6 +4461,10 @@ export default {
           type: 'lf32',
         },
         {
+          name: 'vertical_fly_speed',
+          type: 'lf32',
+        },
+        {
           name: 'walk_speed',
           type: 'lf32',
         },
@@ -4751,8 +4751,15 @@ export default {
           106: 'server_shutdown',
           107: 'game_setup_cancelled',
           108: 'game_setup_failed',
-          109: 'sub_client_login_disabled',
-          110: 'deep_link_trying_to_open_demo_world_while_signed_in',
+          109: 'no_venue',
+          110: 'conn_signalling_sign_in_failed',
+          111: 'session_access_denied',
+          112: 'service_sign_in_issue',
+          113: 'conn_no_signaling_channel',
+          114: 'conn_not_logged_in',
+          115: 'conn_client_signalling_error',
+          116: 'sub_client_login_disabled',
+          117: 'deep_link_trying_to_open_demo_world_while_signed_in',
         },
       },
     ],
@@ -4779,77 +4786,6 @@ export default {
         mappings: {
           '0': 'GLIDE_BOOST',
           '-1': 'invalid',
-        },
-      },
-    ],
-    CameraAimAssistAction: [
-      'mapper',
-      {
-        type: 'u8',
-        mappings: {
-          0: 'set_from_camera_preset',
-          1: 'clear',
-        },
-      },
-    ],
-    EntityBoundingBoxComponent: [
-      'container',
-      [
-        {
-          name: 'scale',
-          type: 'lf32',
-        },
-        {
-          name: 'width',
-          type: 'lf32',
-        },
-        {
-          name: 'height',
-          type: 'lf32',
-        },
-      ],
-    ],
-    MovementAttributesComponent: [
-      'container',
-      [
-        {
-          name: 'movement_speed',
-          type: 'lf32',
-        },
-        {
-          name: 'underwater_movement_speed',
-          type: 'lf32',
-        },
-        {
-          name: 'lava_movement_speed',
-          type: 'lf32',
-        },
-        {
-          name: 'jump_strength',
-          type: 'lf32',
-        },
-        {
-          name: 'health',
-          type: 'lf32',
-        },
-        {
-          name: 'hunger',
-          type: 'lf32',
-        },
-      ],
-    ],
-    CreativeItemCategory: [
-      'mapper',
-      {
-        type: 'li32',
-        mappings: {
-          0: 'all',
-          1: 'construction',
-          2: 'nature',
-          3: 'equipment',
-          4: 'items',
-          5: 'item_command_only',
-          6: 'undefined',
         },
       },
     ],
@@ -8029,6 +7965,10 @@ export default {
                       type: 'string',
                     },
                     {
+                      name: 'filtered_title',
+                      type: 'string',
+                    },
+                    {
                       name: 'progress',
                       type: 'lf32',
                     },
@@ -8087,6 +8027,10 @@ export default {
                   [
                     {
                       name: 'title',
+                      type: 'string',
+                    },
+                    {
+                      name: 'filtered_title',
                       type: 'string',
                     },
                   ],
@@ -10802,7 +10746,20 @@ export default {
                 [
                   {
                     name: 'category',
-                    type: 'CreativeItemCategory',
+                    type: [
+                      'mapper',
+                      {
+                        type: 'li32',
+                        mappings: {
+                          0: 'all',
+                          1: 'construction',
+                          2: 'nature',
+                          3: 'equipment',
+                          4: 'items',
+                          5: 'item_command_only',
+                        },
+                      },
+                    ],
                   },
                   {
                     name: 'name',
@@ -10827,11 +10784,11 @@ export default {
                 'container',
                 [
                   {
-                    name: 'item_index',
+                    name: 'entry_id',
                     type: 'varint',
                   },
                   {
-                    name: 'item_instance',
+                    name: 'item',
                     type: 'ItemLegacy',
                   },
                   {
@@ -11255,14 +11212,8 @@ export default {
       'container',
       [
         {
-          name: 'items',
-          type: [
-            'array',
-            {
-              countType: 'varint',
-              type: 'ItemData',
-            },
-          ],
+          name: 'itemstates',
+          type: 'Itemstates',
         },
       ],
     ],
@@ -12940,7 +12891,16 @@ export default {
         },
         {
           name: 'action',
-          type: 'CameraAimAssistAction',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'set',
+                1: 'clear',
+              },
+            },
+          ],
         },
       ],
     ],
@@ -13184,7 +13144,16 @@ export default {
         },
         {
           name: 'operation',
-          type: 'u8',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'set',
+                1: 'add_to_existing',
+              },
+            },
+          ],
         },
       ],
     ],
@@ -13197,7 +13166,16 @@ export default {
         },
         {
           name: 'action',
-          type: 'CameraAimAssistAction',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'set_from_camera_preset',
+                1: 'clear',
+              },
+            },
+          ],
         },
         {
           name: 'allow_aim_assist',
@@ -13214,14 +13192,50 @@ export default {
         },
         {
           name: 'bounding_box',
-          type: 'EntityBoundingBoxComponent',
+          type: [
+            'container',
+            [
+              {
+                name: 'scale',
+                type: 'lf32',
+              },
+              {
+                name: 'width',
+                type: 'lf32',
+              },
+              {
+                name: 'height',
+                type: 'lf32',
+              },
+            ],
+          ],
         },
         {
-          name: 'movement_attributes',
-          type: 'MovementAttributesComponent',
+          name: 'movement_speed',
+          type: 'lf32',
         },
         {
-          name: 'entity_unique_id',
+          name: 'underwater_movement_speed',
+          type: 'lf32',
+        },
+        {
+          name: 'lava_movement_speed',
+          type: 'lf32',
+        },
+        {
+          name: 'jump_strength',
+          type: 'lf32',
+        },
+        {
+          name: 'health',
+          type: 'lf32',
+        },
+        {
+          name: 'hunger',
+          type: 'lf32',
+        },
+        {
+          name: 'entity_runtime_id',
           type: 'varint64',
         },
       ],

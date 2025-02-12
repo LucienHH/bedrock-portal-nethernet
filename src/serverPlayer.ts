@@ -288,9 +288,9 @@ export class Player extends TypedEmitter<PlayerEvents> {
     // In the future, we can send down the whole item palette if we need
     // but since it's only one item, we can just make a single variable.
     let shieldItemID
-    for (const item of palette) {
-      if (item.name === 'minecraft:shield') {
-        shieldItemID = item.network_id
+    for (const state of palette) {
+      if (state.name === 'minecraft:shield') {
+        shieldItemID = state.runtime_id
         break
       }
     }
@@ -303,7 +303,7 @@ export class Player extends TypedEmitter<PlayerEvents> {
 
   write(name: string, params: any) {
     this.outLog?.(name, params)
-    if (name === 'item_registry') this.updateItemPalette(params.items)
+    if (name === 'item_registry') this.updateItemPalette(params.itemstates)
 
     const batch = new Framer(this)
 
