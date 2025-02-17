@@ -15,23 +15,13 @@ const MessageType = {
 
 const debug = debugFn('bedrock-portal-nethernet')
 
-export function getRandomUint64() {
-  // Generate two 32-bit random integers
-  const high = Math.floor(Math.random() * 0xFFFFFFFF)
-  const low = Math.floor(Math.random() * 0xFFFFFFFF)
-
-  // Combine them to create a 64-bit unsigned integer
-  const result = (BigInt(high) << 32n) | BigInt(low)
-  return result
-}
-
 export class Signal extends EventEmitter {
 
   public ws: WebSocket | null
 
   public networkId: bigint
 
-  public credentials: [{ hostname: string, port: number, username: string, password: string }] | null
+  public credentials: { hostname: string, port: number, username: string, password: string }[] | null
 
   private authflow: Authflow
 
@@ -190,15 +180,7 @@ export class Signal extends EventEmitter {
           return
         }
 
-        this.credentials = JSON.parse(message.Message).TurnAuthServers[0].Urls.map((server: any) => {
-          const [hostname, port] = server.split(':')
-          return {
-            hostname,
-            port: parseInt(port),
-            username: message.Message[0].Username,
-            password: message.Message[0].Password,
-          }
-        })
+        this.credentials = parseTurnServers(message.Message)
 
         this.emit('credentials', this.credentials)
 
@@ -226,4 +208,30 @@ export class Signal extends EventEmitter {
     this.ws.send(message)
   }
 
+}
+
+function parseTurnServers(dataString: string) {
+  const servers: { hostname: string, port: number, username: string, password: string }[] = []
+
+  const data = JSON.parse(dataString)
+
+  if (!data.TurnAuthServers) return servers
+
+  for (const server of data.TurnAuthServers) {
+    if (!server.Urls) continue
+
+    for (const url of server.Urls) {
+      const match = url.match(/(stun|turn):([^:]+):(\d+)/)
+      if (match) {
+        servers.push({
+          hostname: match[2],
+          port: parseInt(match[3], 10),
+          username: server.Username || undefined,
+          password: server.Password || undefined,
+        })
+      }
+    }
+  }
+
+  return servers
 }
