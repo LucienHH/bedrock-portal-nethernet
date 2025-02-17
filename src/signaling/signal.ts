@@ -177,11 +177,13 @@ export class Signal extends EventEmitter {
           return
         }
 
-        this.credentials = JSON.parse(message.Message).TurnAuthServers.map((credential: any) => {
+        this.credentials = JSON.parse(message.Message).TurnAuthServers[0].Urls.map((server: any) => {
+          const [hostname, port] = server.split(':')
           return {
-            urls: credential.Urls.join(','),
-            credential: credential.Password,
-            username: credential.Username,
+            hostname,
+            port: parseInt(port),
+            username: message.Message[0].Username,
+            password: message.Message[0].Password,
           }
         })
 

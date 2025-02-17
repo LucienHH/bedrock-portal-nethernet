@@ -315,7 +315,7 @@ export class Player extends TypedEmitter<PlayerEvents> {
   }
 
   sendPacket(buffer: Buffer) {
-    if (this.connection.reliable?.readyState !== 'open' || this.status === ClientStatus.Disconnected) return
+    if (!this.connection.reliable?.isOpen() || this.status === ClientStatus.Disconnected) return
     try {
       this.connection.write(buffer)
     }

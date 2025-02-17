@@ -1,4 +1,4 @@
-import { RTCIceCandidate, RTCPeerConnection } from 'werift'
+import { PeerConnection } from 'node-datachannel'
 
 import { Connection } from './connection'
 import { getRandomUint64, Signal } from '../signaling/signal'
@@ -44,7 +44,7 @@ export class Server {
     const conn = this.connections.get(signal.connectionId)
 
     if (conn) {
-      await conn.rtcConnection.addIceCandidate(new RTCIceCandidate({ candidate: signal.data }))
+      conn.rtcConnection.addRemoteCandidate(signal.data, '0')
     }
     else {
       debugFn('Received candidate for unknown connection', signal)
@@ -54,41 +54,43 @@ export class Server {
 
   async handleOffer(signal: SignalStructure) {
 
-    const rtcConnection = new RTCPeerConnection({
-      iceServers: this.signaling.credentials,
-    })
+    if (!this.signaling.credentials) {
+      throw new Error('No credentials set')
+    }
+
+    const rtcConnection = new PeerConnection('pc', { iceServers: this.signaling.credentials })
 
     const connection = new Connection(this, signal.connectionId, rtcConnection)
 
     this.connections.set(signal.connectionId, connection)
 
-    rtcConnection.onicecandidate = (e) => {
-      if (e.candidate) {
-        this.signaling.write(
-          new SignalStructure(SignalType.CandidateAdd, signal.connectionId, e.candidate.candidate, signal.networkId)
-        )
-      }
-    }
+    rtcConnection.onLocalCandidate(candidate => {
+      this.signaling.write(
+        new SignalStructure(SignalType.CandidateAdd, signal.connectionId, candidate, signal.networkId)
+      )
+    })
 
-    rtcConnection.ondatachannel = ({ channel }) => {
-      if (channel.label === 'ReliableDataChannel') connection.setChannels(channel)
-      if (channel.label === 'UnreliableDataChannel') connection.setChannels(null, channel)
-    }
 
-    rtcConnection.onconnectionstatechange = () => {
-      const state = rtcConnection.connectionState
+    rtcConnection.onDataChannel(channel => {
+      if (channel.getLabel() === 'ReliableDataChannel') connection.setChannels(channel)
+      if (channel.getLabel() === 'UnreliableDataChannel') connection.setChannels(null, channel)
+    })
+
+    rtcConnection.onIceStateChange(state => {
       if (state === 'connected') this.onOpenConnection(connection)
       if (state === 'disconnected') this.onCloseConnection(signal.connectionId, 'disconnected')
+    })
+
+    rtcConnection.setRemoteDescription(signal.data, 'offer')
+
+    const answer = rtcConnection.localDescription()
+
+    if(!answer) {
+      throw new Error('No answer')
     }
 
-    await rtcConnection.setRemoteDescription({ type: 'offer', sdp: signal.data })
-
-    const answer = await rtcConnection.createAnswer()
-
-    await rtcConnection.setLocalDescription(answer)
-
     this.signaling.write(
-      new SignalStructure(SignalType.ConnectResponse, signal.connectionId, answer.sdp, signal.networkId)
+      new SignalStructure(SignalType.ConnectResponse, signal.connectionId, answer?.sdp, signal.networkId)
     )
 
   }
