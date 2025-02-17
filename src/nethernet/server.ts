@@ -1,10 +1,17 @@
 import { PeerConnection } from 'node-datachannel'
 
 import { Connection } from './connection'
-import { getRandomUint64, Signal } from '../signaling/signal'
+import { Signal } from '../signaling/signal'
 import { SignalStructure, SignalType } from '../signaling/struct'
 
 const debugFn = require('debug')('bedrock-portal-nethernet')
+
+const getRandomUint64 = () => {
+  const high = Math.floor(Math.random() * 0xFFFFFFFF)
+  const low = Math.floor(Math.random() * 0xFFFFFFFF)
+
+  return (BigInt(high) << 32n) | BigInt(low)
+}
 
 export class Server {
 
@@ -70,7 +77,6 @@ export class Server {
       )
     })
 
-
     rtcConnection.onDataChannel(channel => {
       if (channel.getLabel() === 'ReliableDataChannel') connection.setChannels(channel)
       if (channel.getLabel() === 'UnreliableDataChannel') connection.setChannels(null, channel)
@@ -90,7 +96,7 @@ export class Server {
     }
 
     this.signaling.write(
-      new SignalStructure(SignalType.ConnectResponse, signal.connectionId, answer?.sdp, signal.networkId)
+      new SignalStructure(SignalType.ConnectResponse, signal.connectionId, answer.sdp, signal.networkId)
     )
 
   }
