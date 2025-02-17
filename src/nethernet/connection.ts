@@ -1,5 +1,6 @@
+import { PeerConnection, DataChannel } from 'node-datachannel'
+
 import { Server } from './server'
-import { RTCDataChannel, RTCPeerConnection } from 'werift'
 
 const debugFn = require('debug')('bedrock-portal-nethernet')
 
@@ -11,17 +12,17 @@ export class Connection {
 
   connectionId: bigint
 
-  rtcConnection: RTCPeerConnection
+  rtcConnection: PeerConnection
 
-  reliable: RTCDataChannel | null
+  reliable: DataChannel | null
 
-  unreliable: RTCDataChannel | null
+  unreliable: DataChannel | null
 
   promisedSegments: number
 
   buf: Buffer | null
 
-  constructor(nethernet: Server, connectionId: bigint, rtcConnection: RTCPeerConnection) {
+  constructor(nethernet: Server, connectionId: bigint, rtcConnection: PeerConnection) {
 
     this.nethernet = nethernet
 
@@ -39,19 +40,23 @@ export class Connection {
 
   }
 
-  setChannels(reliable: RTCDataChannel | null, unreliable?: RTCDataChannel) {
+  setChannels(reliable: DataChannel | null, unreliable?: DataChannel) {
     if (reliable) {
       this.reliable = reliable
-      this.reliable.onmessage = (msg) => this.handleMessage(msg.data)
+      this.reliable.onMessage((msg) => this.handleMessage(msg))
     }
     if (unreliable) {
       this.unreliable = unreliable
     }
   }
 
-  handleMessage(data: string | Buffer) {
+  handleMessage(data: string | Buffer | ArrayBuffer) {
 
     if (typeof data === 'string') {
+      data = Buffer.from(data)
+    }
+
+    if (data instanceof ArrayBuffer) {
       data = Buffer.from(data)
     }
 
@@ -110,7 +115,7 @@ export class Connection {
 
       debugFn('Sending fragment', segments, 'header', message[0])
 
-      this.reliable.send(message)
+      this.reliable.sendMessageBinary(message)
 
       n += frag.length
     }

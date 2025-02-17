@@ -1,10 +1,11 @@
 import type { Authflow } from 'prismarine-auth'
 
 import debugFn from 'debug'
-import { Data, ErrorEvent, WebSocket } from 'ws'
-import { SignalStructure } from './struct'
-import { once, EventEmitter } from 'events'
 import { stringify } from 'json-bigint'
+import { once, EventEmitter } from 'events'
+import { Data, ErrorEvent, WebSocket } from 'ws'
+
+import { SignalStructure } from './struct'
 
 const MessageType = {
   RequestPing: 0,
@@ -14,29 +15,21 @@ const MessageType = {
 
 const debug = debugFn('bedrock-portal-nethernet')
 
-export function getRandomUint64() {
-  // Generate two 32-bit random integers
-  const high = Math.floor(Math.random() * 0xFFFFFFFF)
-  const low = Math.floor(Math.random() * 0xFFFFFFFF)
-
-  // Combine them to create a 64-bit unsigned integer
-  const result = (BigInt(high) << 32n) | BigInt(low)
-  return result
-}
-
 export class Signal extends EventEmitter {
 
-  authflow: Authflow
+  public ws: WebSocket | null
 
-  ws: WebSocket | null
+  public networkId: bigint
 
-  pingInterval: NodeJS.Timeout | null
+  public credentials: { hostname: string, port: number, username: string, password: string }[] | null
 
-  networkId: bigint
+  private authflow: Authflow
 
-  version: string
+  private version: string
 
-  credentials: any
+  private pingInterval: NodeJS.Timeout | null
+
+  private retryCount: number
 
   constructor(authflow: Authflow, networkId: bigint, version: string) {
     super()
@@ -49,9 +42,11 @@ export class Signal extends EventEmitter {
 
     this.ws = null
 
+    this.credentials = null
+
     this.pingInterval = null
 
-    this.credentials = null
+    this.retryCount = 0
 
   }
 
@@ -122,7 +117,7 @@ export class Signal extends EventEmitter {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         this.ws.send(JSON.stringify({ Type: MessageType.RequestPing }))
       }
-    })
+    }, 5000)
 
     ws.onopen = () => {
       this.onOpen()
@@ -157,7 +152,15 @@ export class Signal extends EventEmitter {
     if (code === 1006) {
       debug('Signal Connection Closed Unexpectedly')
 
-      this.destroy(true)
+      if (this.retryCount < 5) {
+        this.retryCount++
+        this.destroy(true)
+      }
+      else {
+        this.destroy()
+        throw new Error('Signal Connection Closed Unexpectedly')
+      }
+
     }
   }
 
@@ -177,13 +180,7 @@ export class Signal extends EventEmitter {
           return
         }
 
-        this.credentials = JSON.parse(message.Message).TurnAuthServers.map((credential: any) => {
-          return {
-            urls: credential.Urls.join(','),
-            credential: credential.Password,
-            username: credential.Username,
-          }
-        })
+        this.credentials = parseTurnServers(message.Message)
 
         this.emit('credentials', this.credentials)
 
@@ -211,4 +208,30 @@ export class Signal extends EventEmitter {
     this.ws.send(message)
   }
 
+}
+
+function parseTurnServers(dataString: string) {
+  const servers: { hostname: string, port: number, username: string, password: string }[] = []
+
+  const data = JSON.parse(dataString)
+
+  if (!data.TurnAuthServers) return servers
+
+  for (const server of data.TurnAuthServers) {
+    if (!server.Urls) continue
+
+    for (const url of server.Urls) {
+      const match = url.match(/(stun|turn):([^:]+):(\d+)/)
+      if (match) {
+        servers.push({
+          hostname: match[2],
+          port: parseInt(match[3], 10),
+          username: server.Username || undefined,
+          password: server.Password || undefined,
+        })
+      }
+    }
+  }
+
+  return servers
 }
