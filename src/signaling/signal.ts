@@ -1,10 +1,11 @@
 import type { Authflow } from 'prismarine-auth'
 
 import debugFn from 'debug'
-import { Data, ErrorEvent, WebSocket } from 'ws'
-import { SignalStructure } from './struct'
-import { once, EventEmitter } from 'events'
 import { stringify } from 'json-bigint'
+import { once, EventEmitter } from 'events'
+import { Data, ErrorEvent, WebSocket } from 'ws'
+
+import { SignalStructure } from './struct'
 
 const MessageType = {
   RequestPing: 0,
@@ -26,17 +27,19 @@ export function getRandomUint64() {
 
 export class Signal extends EventEmitter {
 
-  authflow: Authflow
+  public ws: WebSocket | null
 
-  ws: WebSocket | null
+  public networkId: bigint
 
-  pingInterval: NodeJS.Timeout | null
+  public credentials: [{ hostname: string, port: number, username: string, password: string }] | null
 
-  networkId: bigint
+  private authflow: Authflow
 
-  version: string
+  private version: string
 
-  credentials: any
+  private pingInterval: NodeJS.Timeout | null
+
+  private retryCount: number
 
   constructor(authflow: Authflow, networkId: bigint, version: string) {
     super()
@@ -49,9 +52,11 @@ export class Signal extends EventEmitter {
 
     this.ws = null
 
+    this.credentials = null
+
     this.pingInterval = null
 
-    this.credentials = null
+    this.retryCount = 0
 
   }
 
@@ -122,7 +127,7 @@ export class Signal extends EventEmitter {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         this.ws.send(JSON.stringify({ Type: MessageType.RequestPing }))
       }
-    })
+    }, 5000)
 
     ws.onopen = () => {
       this.onOpen()
@@ -157,7 +162,15 @@ export class Signal extends EventEmitter {
     if (code === 1006) {
       debug('Signal Connection Closed Unexpectedly')
 
-      this.destroy(true)
+      if (this.retryCount < 5) {
+        this.retryCount++
+        this.destroy(true)
+      }
+      else {
+        this.destroy()
+        throw new Error('Signal Connection Closed Unexpectedly')
+      }
+
     }
   }
 
