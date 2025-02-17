@@ -1,7 +1,8 @@
-import JWT from 'jsonwebtoken'
-import { PUBLIC_KEY } from './constants'
 import crypto from 'crypto'
+import JWT from 'jsonwebtoken'
+
 import { Player } from '../serverPlayer'
+import { PUBLIC_KEY } from './constants'
 
 const debug = require('debug')('bedrock-portal-nethernet')
 
