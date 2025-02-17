@@ -12,7 +12,7 @@ export type Options = {
 }
 
 // Currently supported verson. Note, clients with newer versions can still connect as long as data is in minecraft-data
-export const CURRENT_VERSION = '1.21.50'
+export const CURRENT_VERSION = '1.21.60'
 
 export const defaultOptions = {
   // https://minecraft.wiki/w/Protocol_version#Bedrock_Edition_2
