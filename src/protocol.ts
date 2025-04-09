@@ -1032,6 +1032,9 @@ export default {
           'timer_flag_3',
           'body_rotation_blocked',
           'render_when_invisible',
+          'body_rotation_axis_aligned',
+          'collidable',
+          'wasd_air_controlled',
         ],
       },
     ],
@@ -2939,6 +2942,10 @@ export default {
                                 type: 'varint',
                               },
                               {
+                                name: 'times_crafted',
+                                type: 'u8',
+                              },
+                              {
                                 name: 'cost',
                                 type: 'varint',
                               },
@@ -2950,6 +2957,10 @@ export default {
                               {
                                 name: 'pattern',
                                 type: 'string',
+                              },
+                              {
+                                name: 'times_crafted',
+                                type: 'u8',
                               },
                             ],
                           ],
@@ -4947,6 +4958,7 @@ export default {
                 152: 'emote_list',
                 153: 'position_tracking_db_broadcast',
                 154: 'position_tracking_db_request',
+                155: 'debug_info',
                 156: 'packet_violation_warning',
                 157: 'motion_prediction_hints',
                 158: 'animate_entity',
@@ -5013,6 +5025,9 @@ export default {
                 320: 'camera_aim_assist_presets',
                 321: 'client_camera_aim_assist',
                 322: 'client_movement_prediction_sync',
+                323: 'update_client_options',
+                324: 'player_video_capture',
+                325: 'player_update_entity_overrides',
               },
             },
           ],
@@ -5171,6 +5186,7 @@ export default {
                 emote_list: 'packet_emote_list',
                 position_tracking_db_request: 'packet_position_tracking_db_request',
                 position_tracking_db_broadcast: 'packet_position_tracking_db_broadcast',
+                debug_info: 'packet_debug_info',
                 packet_violation_warning: 'packet_packet_violation_warning',
                 motion_prediction_hints: 'packet_motion_prediction_hints',
                 animate_entity: 'packet_animate_entity',
@@ -5238,6 +5254,9 @@ export default {
                 camera_aim_assist_presets: 'packet_camera_aim_assist_presets',
                 client_camera_aim_assist: 'packet_client_camera_aim_assist',
                 client_movement_prediction_sync: 'packet_client_movement_prediction_sync',
+                update_client_options: 'packet_update_client_options',
+                player_video_capture: 'packet_player_video_capture',
+                player_update_entity_overrides: 'packet_player_update_entity_overrides',
               },
             },
           ],
@@ -9900,6 +9919,10 @@ export default {
           name: 'is_global',
           type: 'bool',
         },
+        {
+          name: 'entity_unique_id',
+          type: 'li64',
+        },
       ],
     ],
     packet_level_event_generic: [
@@ -11004,6 +11027,19 @@ export default {
         {
           name: 'nbt',
           type: 'nbt',
+        },
+      ],
+    ],
+    packet_debug_info: [
+      'container',
+      [
+        {
+          name: 'player_unique_id',
+          type: 'zigzag64',
+        },
+        {
+          name: 'data',
+          type: 'ByteArray',
         },
       ],
     ],
@@ -12733,7 +12769,7 @@ export default {
           type: [
             'mapper',
             {
-              type: 'u8',
+              type: 'varint',
               mappings: {
                 0: 'hide',
                 1: 'reset',
@@ -12746,7 +12782,7 @@ export default {
     Element: [
       'mapper',
       {
-        type: 'u8',
+        type: 'varint',
         mappings: {
           0: 'PaperDoll',
           1: 'Armour',
@@ -12963,7 +12999,7 @@ export default {
       'container',
       [
         {
-          name: 'category_groups',
+          name: 'categories',
           type: [
             'array',
             {
@@ -12972,11 +13008,11 @@ export default {
                 'container',
                 [
                   {
-                    name: 'id',
+                    name: 'name',
                     type: 'string',
                   },
                   {
-                    name: 'categories',
+                    name: 'entity_priorities',
                     type: [
                       'array',
                       {
@@ -12985,78 +13021,52 @@ export default {
                           'container',
                           [
                             {
-                              name: 'name',
+                              name: 'id',
                               type: 'string',
                             },
                             {
-                              name: 'priorities',
-                              type: [
-                                'container',
-                                [
-                                  {
-                                    name: 'entities',
-                                    type: [
-                                      'array',
-                                      {
-                                        countType: 'varint',
-                                        type: [
-                                          'container',
-                                          [
-                                            {
-                                              name: 'id',
-                                              type: 'string',
-                                            },
-                                            {
-                                              name: 'priority',
-                                              type: 'li32',
-                                            },
-                                          ],
-                                        ],
-                                      },
-                                    ],
-                                  },
-                                  {
-                                    name: 'blocks',
-                                    type: [
-                                      'array',
-                                      {
-                                        countType: 'varint',
-                                        type: [
-                                          'container',
-                                          [
-                                            {
-                                              name: 'id',
-                                              type: 'string',
-                                            },
-                                            {
-                                              name: 'priority',
-                                              type: 'li32',
-                                            },
-                                          ],
-                                        ],
-                                      },
-                                    ],
-                                  },
-                                  {
-                                    name: 'entity_default',
-                                    type: [
-                                      'option',
-                                      'li32',
-                                    ],
-                                  },
-                                  {
-                                    name: 'block_default',
-                                    type: [
-                                      'option',
-                                      'li32',
-                                    ],
-                                  },
-                                ],
-                              ],
+                              name: 'priority',
+                              type: 'li32',
                             },
                           ],
                         ],
                       },
+                    ],
+                  },
+                  {
+                    name: 'block_priorities',
+                    type: [
+                      'array',
+                      {
+                        countType: 'varint',
+                        type: [
+                          'container',
+                          [
+                            {
+                              name: 'id',
+                              type: 'string',
+                            },
+                            {
+                              name: 'priority',
+                              type: 'li32',
+                            },
+                          ],
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    name: 'entity_default',
+                    type: [
+                      'option',
+                      'li32',
+                    ],
+                  },
+                  {
+                    name: 'block_default',
+                    type: [
+                      'option',
+                      'li32',
                     ],
                   },
                 ],
@@ -13075,10 +13085,6 @@ export default {
                 [
                   {
                     name: 'id',
-                    type: 'string',
-                  },
-                  {
-                    name: 'categories',
                     type: 'string',
                   },
                   {
@@ -13237,6 +13243,116 @@ export default {
         {
           name: 'entity_runtime_id',
           type: 'varint64',
+        },
+        {
+          name: 'is_flying',
+          type: 'bool',
+        },
+      ],
+    ],
+    packet_update_client_options: [
+      'container',
+      [
+        {
+          name: 'graphics_mode',
+          type: [
+            'option',
+            [
+              'mapper',
+              {
+                type: 'u8',
+                mappings: {
+                  0: 'simple',
+                  1: 'fancy',
+                  2: 'advanced',
+                  3: 'ray_traced',
+                },
+              },
+            ],
+          ],
+        },
+      ],
+    ],
+    packet_player_video_capture: [
+      'container',
+      [
+        {
+          name: 'action',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'stop',
+                1: 'start',
+              },
+            },
+          ],
+        },
+        {
+          anon: true,
+          type: [
+            'switch',
+            {
+              compareTo: 'action',
+              fields: {
+                start: [
+                  'container',
+                  [
+                    {
+                      name: 'frame_rate',
+                      type: 'li32',
+                    },
+                    {
+                      name: 'file_prefix',
+                      type: 'string',
+                    },
+                  ],
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    ],
+    packet_player_update_entity_overrides: [
+      'container',
+      [
+        {
+          name: 'runtime_id',
+          type: 'varint64',
+        },
+        {
+          name: 'property_index',
+          type: 'varint',
+        },
+        {
+          name: 'type',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'clear_all',
+                1: 'remove',
+                2: 'set_int',
+                3: 'set_float',
+              },
+            },
+          ],
+        },
+        {
+          name: 'value',
+          type: [
+            'switch',
+            {
+              compareTo: 'type',
+              fields: {
+                set_int: 'li32',
+                set_float: 'lf32',
+              },
+            },
+          ],
         },
       ],
     ],
