@@ -839,6 +839,8 @@ export default {
                     131: 'visible_mob_effects',
                     132: 'filtered_name',
                     133: 'bed_enter_position',
+                    134: 'seat_third_person_camera_radius',
+                    135: 'seat_camera_relax_distance_smoothing',
                   },
                 },
               ],
@@ -872,6 +874,8 @@ export default {
                   fields: {
                     flags: 'MetadataFlags1',
                     flags_extended: 'MetadataFlags2',
+                    seat_third_person_camera_radius: 'lf32',
+                    seat_camera_relax_distance_smoothing: 'lf32',
                   },
                   default: [
                     'switch',
@@ -1035,6 +1039,7 @@ export default {
           'body_rotation_axis_aligned',
           'collidable',
           'wasd_air_controlled',
+          'does_server_auth_only_dismount',
         ],
       },
     ],
@@ -2486,6 +2491,10 @@ export default {
                         {
                           name: 'is_subclient',
                           type: 'bool',
+                        },
+                        {
+                          name: 'player_color',
+                          type: 'li32',
                         },
                       ],
                     ],
@@ -4646,6 +4655,25 @@ export default {
             ],
           ],
         },
+        {
+          name: 'control_scheme',
+          type: [
+            'option',
+            [
+              'mapper',
+              {
+                type: 'u8',
+                mappings: {
+                  0: 'locked_player_relative_strafe',
+                  1: 'camera_relative',
+                  2: 'camera_relative_strafe',
+                  3: 'player_relative',
+                  4: 'player_relative_strafe',
+                },
+              },
+            ],
+          ],
+        },
       ],
     ],
     DisconnectFailReason: [
@@ -4799,6 +4827,663 @@ export default {
           '-1': 'invalid',
         },
       },
+    ],
+    BiomeDefinition: [
+      'container',
+      [
+        {
+          name: 'name_index',
+          type: 'li16',
+        },
+        {
+          name: 'biome_id',
+          type: [
+            'option',
+            'lu16',
+          ],
+        },
+        {
+          name: 'temperature',
+          type: 'lf32',
+        },
+        {
+          name: 'downfall',
+          type: 'lf32',
+        },
+        {
+          name: 'red_spore_density',
+          type: 'lf32',
+        },
+        {
+          name: 'blue_spore_density',
+          type: 'lf32',
+        },
+        {
+          name: 'ash_density',
+          type: 'lf32',
+        },
+        {
+          name: 'white_ash_density',
+          type: 'lf32',
+        },
+        {
+          name: 'depth',
+          type: 'lf32',
+        },
+        {
+          name: 'scale',
+          type: 'lf32',
+        },
+        {
+          name: 'map_water_colour',
+          type: 'li32',
+        },
+        {
+          name: 'rain',
+          type: 'bool',
+        },
+        {
+          name: 'tags',
+          type: [
+            'option',
+            [
+              'array',
+              {
+                countType: 'varint',
+                type: 'lu16',
+              },
+            ],
+          ],
+        },
+        {
+          name: 'chunk_generation',
+          type: [
+            'option',
+            'BiomeChunkGeneration',
+          ],
+        },
+      ],
+    ],
+    BiomeChunkGeneration: [
+      'container',
+      [
+        {
+          name: 'climate',
+          type: [
+            'option',
+            'BiomeClimate',
+          ],
+        },
+        {
+          name: 'consolidated_features',
+          type: [
+            'option',
+            [
+              'array',
+              {
+                countType: 'varint',
+                type: 'BiomeConsolidatedFeature',
+              },
+            ],
+          ],
+        },
+        {
+          name: 'mountain_parameters',
+          type: [
+            'option',
+            'BiomeMountainParameters',
+          ],
+        },
+        {
+          name: 'surface_material_adjustments',
+          type: [
+            'option',
+            [
+              'array',
+              {
+                countType: 'varint',
+                type: 'BiomeElementData',
+              },
+            ],
+          ],
+        },
+        {
+          name: 'surface_materials',
+          type: [
+            'option',
+            'BiomeSurfaceMaterial',
+          ],
+        },
+        {
+          name: 'has_swamp_surface',
+          type: 'bool',
+        },
+        {
+          name: 'has_frozen_ocean_surface',
+          type: 'bool',
+        },
+        {
+          name: 'has_end_surface',
+          type: 'bool',
+        },
+        {
+          name: 'mesa_surface',
+          type: [
+            'option',
+            'BiomeMesaSurface',
+          ],
+        },
+        {
+          name: 'capped_surface',
+          type: [
+            'option',
+            'BiomeCappedSurface',
+          ],
+        },
+        {
+          name: 'overworld_rules',
+          type: [
+            'option',
+            'BiomeOverworldRules',
+          ],
+        },
+        {
+          name: 'multi_noise_rules',
+          type: [
+            'option',
+            'BiomeMultiNoiseRules',
+          ],
+        },
+        {
+          name: 'legacy_rules',
+          type: [
+            'option',
+            [
+              'array',
+              {
+                countType: 'varint',
+                type: 'BiomeConditionalTransformation',
+              },
+            ],
+          ],
+        },
+      ],
+    ],
+    BiomeClimate: [
+      'container',
+      [
+        {
+          name: 'temperature',
+          type: 'lf32',
+        },
+        {
+          name: 'downfall',
+          type: 'lf32',
+        },
+        {
+          name: 'red_spore_density',
+          type: 'lf32',
+        },
+        {
+          name: 'blue_spore_density',
+          type: 'lf32',
+        },
+        {
+          name: 'ash_density',
+          type: 'lf32',
+        },
+        {
+          name: 'white_ash_density',
+          type: 'lf32',
+        },
+        {
+          name: 'snow_accumulation_min',
+          type: 'lf32',
+        },
+        {
+          name: 'snow_accumulation_max',
+          type: 'lf32',
+        },
+      ],
+    ],
+    BiomeMountainParameters: [
+      'container',
+      [
+        {
+          name: 'steep_block',
+          type: 'li32',
+        },
+        {
+          name: 'north_slopes',
+          type: 'bool',
+        },
+        {
+          name: 'south_slopes',
+          type: 'bool',
+        },
+        {
+          name: 'west_slopes',
+          type: 'bool',
+        },
+        {
+          name: 'east_slopes',
+          type: 'bool',
+        },
+        {
+          name: 'top_slide_enabled',
+          type: 'bool',
+        },
+      ],
+    ],
+    BiomeSurfaceMaterial: [
+      'container',
+      [
+        {
+          name: 'top_block',
+          type: 'li32',
+        },
+        {
+          name: 'mid_block',
+          type: 'li32',
+        },
+        {
+          name: 'sea_floor_block',
+          type: 'li32',
+        },
+        {
+          name: 'foundation_block',
+          type: 'li32',
+        },
+        {
+          name: 'sea_block',
+          type: 'li32',
+        },
+        {
+          name: 'sea_floor_depth',
+          type: 'li32',
+        },
+      ],
+    ],
+    BiomeMesaSurface: [
+      'container',
+      [
+        {
+          name: 'clay_material',
+          type: 'lu32',
+        },
+        {
+          name: 'hard_clay_material',
+          type: 'lu32',
+        },
+        {
+          name: 'bryce_pillars',
+          type: 'bool',
+        },
+        {
+          name: 'has_forest',
+          type: 'bool',
+        },
+      ],
+    ],
+    BiomeCappedSurface: [
+      'container',
+      [
+        {
+          name: 'floor_blocks',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'li32',
+            },
+          ],
+        },
+        {
+          name: 'ceiling_blocks',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'li32',
+            },
+          ],
+        },
+        {
+          name: 'sea_block',
+          type: [
+            'option',
+            'lu32',
+          ],
+        },
+        {
+          name: 'foundation_block',
+          type: [
+            'option',
+            'lu32',
+          ],
+        },
+        {
+          name: 'beach_block',
+          type: [
+            'option',
+            'lu32',
+          ],
+        },
+      ],
+    ],
+    BiomeMultiNoiseRules: [
+      'container',
+      [
+        {
+          name: 'temperature',
+          type: 'lf32',
+        },
+        {
+          name: 'humidity',
+          type: 'lf32',
+        },
+        {
+          name: 'altitude',
+          type: 'lf32',
+        },
+        {
+          name: 'weirdness',
+          type: 'lf32',
+        },
+        {
+          name: 'weight',
+          type: 'lf32',
+        },
+      ],
+    ],
+    BiomeWeight: [
+      'container',
+      [
+        {
+          name: 'biome',
+          type: 'li16',
+        },
+        {
+          name: 'weight',
+          type: 'lu32',
+        },
+      ],
+    ],
+    BiomeTemperatureWeight: [
+      'container',
+      [
+        {
+          name: 'temperature',
+          type: 'zigzag32',
+        },
+        {
+          name: 'weight',
+          type: 'lu32',
+        },
+      ],
+    ],
+    BiomeConsolidatedFeature: [
+      'container',
+      [
+        {
+          name: 'scatter',
+          type: 'BiomeScatterParameter',
+        },
+        {
+          name: 'feature',
+          type: 'li16',
+        },
+        {
+          name: 'identifier',
+          type: 'li16',
+        },
+        {
+          name: 'pass',
+          type: 'li16',
+        },
+        {
+          name: 'can_use_internal',
+          type: 'bool',
+        },
+      ],
+    ],
+    BiomeScatterParameter: [
+      'container',
+      [
+        {
+          name: 'coordinates',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'BiomeCoordinate',
+            },
+          ],
+        },
+        {
+          name: 'evaluation_order',
+          type: [
+            'mapper',
+            {
+              type: 'zigzag32',
+              mappings: {
+                0: 'xyz',
+                1: 'xzy',
+                2: 'yxz',
+                3: 'yzx',
+                4: 'zxy',
+                5: 'zyx',
+              },
+            },
+          ],
+        },
+        {
+          name: 'chance_percent_type',
+          type: 'zigzag32',
+        },
+        {
+          name: 'chance_percent',
+          type: 'li16',
+        },
+        {
+          name: 'chance_numerator',
+          type: 'li32',
+        },
+        {
+          name: 'chance_denominator',
+          type: 'li32',
+        },
+        {
+          name: 'iterations_type',
+          type: 'zigzag32',
+        },
+        {
+          name: 'iterations',
+          type: 'li16',
+        },
+      ],
+    ],
+    BiomeCoordinate: [
+      'container',
+      [
+        {
+          name: 'min_value_type',
+          type: 'zigzag32',
+        },
+        {
+          name: 'min_value',
+          type: 'li16',
+        },
+        {
+          name: 'max_value_type',
+          type: 'zigzag32',
+        },
+        {
+          name: 'max_value',
+          type: 'li16',
+        },
+        {
+          name: 'grid_offset',
+          type: 'lu32',
+        },
+        {
+          name: 'grid_step_size',
+          type: 'lu32',
+        },
+        {
+          name: 'distribution',
+          type: [
+            'mapper',
+            {
+              type: 'zigzag32',
+              mappings: {
+                0: 'single_valued',
+                1: 'uniform',
+                2: 'gaussian',
+                3: 'inverse_gaussian',
+                4: 'fixed_grid',
+                5: 'jittered_grid',
+                6: 'triangle',
+              },
+            },
+          ],
+        },
+      ],
+    ],
+    BiomeElementData: [
+      'container',
+      [
+        {
+          name: 'noise_frequency_scale',
+          type: 'lf32',
+        },
+        {
+          name: 'noise_lower_bound',
+          type: 'lf32',
+        },
+        {
+          name: 'noise_upper_bound',
+          type: 'lf32',
+        },
+        {
+          name: 'height_min_type',
+          type: 'zigzag32',
+        },
+        {
+          name: 'height_min',
+          type: 'li16',
+        },
+        {
+          name: 'height_max_type',
+          type: 'zigzag32',
+        },
+        {
+          name: 'height_max',
+          type: 'li16',
+        },
+        {
+          name: 'adjusted_materials',
+          type: 'BiomeSurfaceMaterial',
+        },
+      ],
+    ],
+    BiomeOverworldRules: [
+      'container',
+      [
+        {
+          name: 'hills_transformations',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'BiomeWeight',
+            },
+          ],
+        },
+        {
+          name: 'mutate_transformations',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'BiomeWeight',
+            },
+          ],
+        },
+        {
+          name: 'river_transformations',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'BiomeWeight',
+            },
+          ],
+        },
+        {
+          name: 'shore_transformations',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'BiomeWeight',
+            },
+          ],
+        },
+        {
+          name: 'pre_hills_edge_transformations',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'BiomeConditionalTransformation',
+            },
+          ],
+        },
+        {
+          name: 'post_shore_edge_transformations',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'BiomeConditionalTransformation',
+            },
+          ],
+        },
+        {
+          name: 'climate_transformations',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'BiomeTemperatureWeight',
+            },
+          ],
+        },
+      ],
+    ],
+    BiomeConditionalTransformation: [
+      'container',
+      [
+        {
+          name: 'weighted_biomes',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'BiomeWeight',
+            },
+          ],
+        },
+        {
+          name: 'condition_json',
+          type: 'li16',
+        },
+        {
+          name: 'min_passing_neighbours',
+          type: 'lu32',
+        },
+      ],
     ],
     mcpe_packet: [
       'container',
@@ -4954,6 +5639,7 @@ export default {
                 147: 'item_stack_request',
                 148: 'item_stack_response',
                 149: 'player_armor_damage',
+                150: 'code_builder',
                 151: 'update_player_game_type',
                 152: 'emote_list',
                 153: 'position_tracking_db_broadcast',
@@ -5028,6 +5714,8 @@ export default {
                 323: 'update_client_options',
                 324: 'player_video_capture',
                 325: 'player_update_entity_overrides',
+                326: 'player_location',
+                327: 'clientbound_controls_scheme',
               },
             },
           ],
@@ -5182,6 +5870,7 @@ export default {
                 item_stack_request: 'packet_item_stack_request',
                 item_stack_response: 'packet_item_stack_response',
                 player_armor_damage: 'packet_player_armor_damage',
+                code_builder: 'packet_code_builder',
                 update_player_game_type: 'packet_update_player_game_type',
                 emote_list: 'packet_emote_list',
                 position_tracking_db_request: 'packet_position_tracking_db_request',
@@ -5257,6 +5946,8 @@ export default {
                 update_client_options: 'packet_update_client_options',
                 player_video_capture: 'packet_player_video_capture',
                 player_update_entity_overrides: 'packet_player_update_entity_overrides',
+                player_location: 'packet_player_location',
+                clientbound_controls_scheme: 'packet_clientbound_controls_scheme',
               },
             },
           ],
@@ -5764,6 +6455,7 @@ export default {
                 0: 'not_editor',
                 1: 'project',
                 2: 'test_level',
+                3: 'realms_upload',
               },
             },
           ],
@@ -9887,8 +10579,24 @@ export default {
       'container',
       [
         {
-          name: 'nbt',
-          type: 'nbt',
+          name: 'biome_definitions',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'BiomeDefinition',
+            },
+          ],
+        },
+        {
+          name: 'string_list',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'string',
+            },
+          ],
         },
       ],
     ],
@@ -10945,6 +11653,19 @@ export default {
           body: 16,
         },
       },
+    ],
+    packet_code_builder: [
+      'container',
+      [
+        {
+          name: 'url',
+          type: 'string',
+        },
+        {
+          name: 'should_open_code_builder',
+          type: 'bool',
+        },
+      ],
     ],
     packet_update_player_game_type: [
       'container',
@@ -13350,6 +14071,61 @@ export default {
               fields: {
                 set_int: 'li32',
                 set_float: 'lf32',
+              },
+            },
+          ],
+        },
+      ],
+    ],
+    packet_player_location: [
+      'container',
+      [
+        {
+          name: 'type',
+          type: [
+            'mapper',
+            {
+              type: 'li32',
+              mappings: {
+                0: 'coordinates',
+                1: 'type_hide',
+              },
+            },
+          ],
+        },
+        {
+          name: 'entity_unique_id',
+          type: 'varint64',
+        },
+        {
+          name: 'position',
+          type: [
+            'switch',
+            {
+              compareTo: 'type',
+              fields: {
+                coordinates: 'vec3f',
+              },
+            },
+          ],
+        },
+      ],
+    ],
+    packet_clientbound_controls_scheme: [
+      'container',
+      [
+        {
+          name: 'scheme',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'locked_player_relative_strafe',
+                1: 'camera_relative',
+                2: 'camera_relative_strafe',
+                3: 'player_relative',
+                4: 'player_relative_strafe',
               },
             },
           ],
