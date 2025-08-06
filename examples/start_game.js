@@ -82,6 +82,7 @@ module.exports = {
   is_trial: false,
   rewind_history_size: 40,
   server_authoritative_block_breaking: true,
+  tick_death_systems: true,
   current_tick: [
     0,
     1028,
