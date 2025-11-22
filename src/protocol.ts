@@ -213,7 +213,7 @@ export default {
         },
       ],
     ],
-    GameRulesVarint: [
+    GameRuleVarint: [
       'container',
       [
         {
@@ -4740,6 +4740,62 @@ export default {
         },
       ],
     ],
+    CameraRotationOption: [
+      'container',
+      [
+        {
+          name: 'value',
+          type: 'vec3f',
+        },
+        {
+          name: 'time',
+          type: 'lf32',
+        },
+      ],
+    ],
+    CameraSplineInstruction: [
+      'container',
+      [
+        {
+          name: 'total_time',
+          type: 'lf32',
+        },
+        {
+          name: 'ease_type',
+          type: 'CameraSplineEaseType',
+        },
+        {
+          name: 'curve',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'vec3f',
+            },
+          ],
+        },
+        {
+          name: 'progress_key_frames',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'vec2f',
+            },
+          ],
+        },
+        {
+          name: 'rotation_options',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'CameraRotationOption',
+            },
+          ],
+        },
+      ],
+    ],
     DisconnectFailReason: [
       'mapper',
       {
@@ -5063,6 +5119,19 @@ export default {
               {
                 countType: 'varint',
                 type: 'BiomeConditionalTransformation',
+              },
+            ],
+          ],
+        },
+        {
+          name: 'replacements_data',
+          type: [
+            'option',
+            [
+              'array',
+              {
+                countType: 'varint',
+                type: 'BiomeReplacementData',
               },
             ],
           ],
@@ -5529,6 +5598,41 @@ export default {
         },
       ],
     ],
+    BiomeReplacementData: [
+      'container',
+      [
+        {
+          name: 'biome',
+          type: 'li16',
+        },
+        {
+          name: 'dimension',
+          type: 'li16',
+        },
+        {
+          name: 'target_biomes',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'li16',
+            },
+          ],
+        },
+        {
+          name: 'amount',
+          type: 'lf32',
+        },
+        {
+          name: 'noise_frequency_scale',
+          type: 'lf32',
+        },
+        {
+          name: 'replacement_index',
+          type: 'lu32',
+        },
+      ],
+    ],
     EaseType: [
       'mapper',
       {
@@ -5566,6 +5670,38 @@ export default {
           29: 'InElastic',
           30: 'OutElastic',
           31: 'InOutElastic',
+        },
+      },
+    ],
+    CameraSplineEaseType: [
+      'mapper',
+      {
+        type: 'u8',
+        mappings: {
+          0: 'catmull_rom',
+          1: 'linear',
+        },
+      },
+    ],
+    ParameterKeyframeValue: [
+      'container',
+      [
+        {
+          name: 'time',
+          type: 'lf32',
+        },
+        {
+          name: 'value',
+          type: 'vec3f',
+        },
+      ],
+    ],
+    GraphicsOverrideParameterType: [
+      'mapper',
+      {
+        type: 'u8',
+        mappings: {
+          0: 'sky_zenith_color',
         },
       },
     ],
@@ -5802,6 +5938,7 @@ export default {
                 327: 'clientbound_controls_scheme',
                 328: 'server_script_debug_drawer',
                 329: 'serverbound_pack_setting_change',
+                331: 'graphics_override_parameter',
               },
             },
           ],
@@ -6036,6 +6173,7 @@ export default {
                 clientbound_controls_scheme: 'packet_clientbound_controls_scheme',
                 server_script_debug_drawer: 'packet_server_script_debug_drawer',
                 serverbound_pack_setting_change: 'packet_serverbound_pack_setting_change',
+                graphics_override_parameter: 'packet_graphics_override_parameter',
               },
             },
           ],
@@ -7569,6 +7707,7 @@ export default {
                 76: 'grow_up',
                 77: 'vibration_detected',
                 78: 'drink_milk',
+                79: 'wetness_stop',
               },
             },
           ],
@@ -7936,6 +8075,10 @@ export default {
           type: 'varint64',
         },
         {
+          name: 'data',
+          type: 'lf32',
+        },
+        {
           anon: true,
           type: [
             'switch',
@@ -7946,7 +8089,7 @@ export default {
                   'container',
                   [
                     {
-                      name: 'boat_rowing_time',
+                      name: 'rowing_time',
                       type: 'lf32',
                     },
                   ],
@@ -7955,7 +8098,7 @@ export default {
                   'container',
                   [
                     {
-                      name: 'boat_rowing_time',
+                      name: 'rowing_time',
                       type: 'lf32',
                     },
                   ],
@@ -9767,8 +9910,8 @@ export default {
       'container',
       [
         {
-          name: 'offer_id',
-          type: 'string',
+          name: 'offer_uuid',
+          type: 'uuid',
         },
         {
           name: 'redirect_type',
@@ -13351,6 +13494,27 @@ export default {
             ],
           ],
         },
+        {
+          name: 'spline',
+          type: [
+            'option',
+            'CameraSplineInstruction',
+          ],
+        },
+        {
+          name: 'attach_to_entity',
+          type: [
+            'option',
+            'li64',
+          ],
+        },
+        {
+          name: 'detach_from_entity',
+          type: [
+            'option',
+            'bool',
+          ],
+        },
       ],
     ],
     packet_compressed_biome_definitions: [
@@ -14373,6 +14537,33 @@ export default {
               },
             ],
           ],
+        },
+      ],
+    ],
+    packet_graphics_override_parameter: [
+      'container',
+      [
+        {
+          name: 'values',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'ParameterKeyframeValue',
+            },
+          ],
+        },
+        {
+          name: 'biome_identifier',
+          type: 'string',
+        },
+        {
+          name: 'parameter_type',
+          type: 'GraphicsOverrideParameterType',
+        },
+        {
+          name: 'reset',
+          type: 'bool',
         },
       ],
     ],
