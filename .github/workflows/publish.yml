@@ -6,7 +6,7 @@ on:
 
 permissions:
   id-token: write # Required for OIDC
-  contents: read
+  contents: write
 
 jobs:
   npm-publish:
@@ -14,26 +14,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
+
       - name: Set up Node.js
-        uses: actions/setup-node@master
+        uses: actions/setup-node@v4
         with:
           node-version: "24"
+
       - name: Install dependencies
         run: git config --global url."git@github.com:".insteadOf git://github.com/ && npm install --include=dev
+
       - name: Build
         run: npm run build
-      - id: publish
-        uses: JS-DevTools/npm-publish@v4
+
+      - uses: JS-DevTools/npm-publish@v4
+        id: publish
+
       - name: Create Release
-        if: steps.publish.outputs.type != 'none'
+        if: ${{ steps.publish.outputs.type }}
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.publish.outputs.version }}
-          release_name: Release ${{ steps.publish.outputs.version }}
+          name: Release ${{ steps.publish.outputs.version }}
           body: ${{ steps.publish.outputs.version }}
           draft: false
           prerelease: false
