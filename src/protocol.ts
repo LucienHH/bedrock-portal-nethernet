@@ -1076,6 +1076,7 @@ export default {
           'does_server_auth_only_dismount',
           'body_rotation_always_follows_head',
           'can_use_vertical_movement_action',
+          'rotation_locked_to_vehicle',
         ],
       },
     ],
@@ -4355,6 +4356,18 @@ export default {
           563: 'PlaceItem',
           564: 'SingleItemSwap',
           565: 'MultiItemSwap',
+          566: 'ItemEnchantLunge1',
+          567: 'ItemEnchantLunge2',
+          568: 'ItemEnchantLunge3',
+          569: 'AttackCritical',
+          570: 'ItemSpearAttackHit',
+          571: 'ItemSpearAttackMiss',
+          572: 'ItemWoodenSpearAttackHit',
+          573: 'ItemWoodenSpearAttackMiss',
+          574: 'ImitateParched',
+          575: 'ImitateCamelHusk',
+          576: 'ItemSpearUse',
+          577: 'ItemWoodenSpearUse',
         },
       },
     ],
@@ -5702,8 +5715,38 @@ export default {
         type: 'u8',
         mappings: {
           0: 'sky_zenith_color',
+          1: 'sky_horizon_color',
+          2: 'horizon_blend_min',
+          3: 'horizon_blend_max',
+          4: 'horizon_blend_start',
+          5: 'horizon_blend_mie_start',
+          6: 'rayleigh_strength',
+          7: 'sun_mie_strength',
+          8: 'moon_mie_strength',
+          9: 'sun_glare_shape',
         },
       },
+    ],
+    DebugMarkerData: [
+      'container',
+      [
+        {
+          name: 'text',
+          type: 'string',
+        },
+        {
+          name: 'position',
+          type: 'vec3f',
+        },
+        {
+          name: 'color',
+          type: 'lu32',
+        },
+        {
+          name: 'duration',
+          type: 'lu64',
+        },
+      ],
     ],
     mcpe_packet: [
       'container',
@@ -5938,7 +5981,9 @@ export default {
                 327: 'clientbound_controls_scheme',
                 328: 'server_script_debug_drawer',
                 329: 'serverbound_pack_setting_change',
+                330: 'clientbound_data_store',
                 331: 'graphics_override_parameter',
+                332: 'serverbound_data_store',
               },
             },
           ],
@@ -6173,7 +6218,9 @@ export default {
                 clientbound_controls_scheme: 'packet_clientbound_controls_scheme',
                 server_script_debug_drawer: 'packet_server_script_debug_drawer',
                 serverbound_pack_setting_change: 'packet_serverbound_pack_setting_change',
+                clientbound_data_store: 'packet_clientbound_data_store',
                 graphics_override_parameter: 'packet_graphics_override_parameter',
+                serverbound_data_store: 'packet_serverbound_data_store',
               },
             },
           ],
@@ -6338,10 +6385,6 @@ export default {
           type: 'bool',
         },
         {
-          name: 'behavior_packs',
-          type: 'ResourcePackIdVersions',
-        },
-        {
           name: 'resource_packs',
           type: 'ResourcePackIdVersions',
         },
@@ -6392,6 +6435,98 @@ export default {
       'container',
       [
         {
+          name: 'needs_translation',
+          type: 'bool',
+        },
+        {
+          name: 'category',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'message_only',
+                1: 'authored',
+                2: 'parameters',
+              },
+            },
+          ],
+        },
+        {
+          anon: true,
+          type: [
+            'switch',
+            {
+              compareTo: 'category',
+              fields: {
+                message_only: [
+                  'container',
+                  [
+                    {
+                      name: 'raw',
+                      type: 'string',
+                    },
+                    {
+                      name: 'tip',
+                      type: 'string',
+                    },
+                    {
+                      name: 'system_message',
+                      type: 'string',
+                    },
+                    {
+                      name: 'text_object_whisper',
+                      type: 'string',
+                    },
+                    {
+                      name: 'text_object_announcement',
+                      type: 'string',
+                    },
+                    {
+                      name: 'text_object',
+                      type: 'string',
+                    },
+                  ],
+                ],
+                authored: [
+                  'container',
+                  [
+                    {
+                      name: 'chat',
+                      type: 'string',
+                    },
+                    {
+                      name: 'whisper',
+                      type: 'string',
+                    },
+                    {
+                      name: 'announcement',
+                      type: 'string',
+                    },
+                  ],
+                ],
+                parameters: [
+                  'container',
+                  [
+                    {
+                      name: 'translate',
+                      type: 'string',
+                    },
+                    {
+                      name: 'popup',
+                      type: 'string',
+                    },
+                    {
+                      name: 'jukebox_popup',
+                      type: 'string',
+                    },
+                  ],
+                ],
+              },
+            },
+          ],
+        },
+        {
           name: 'type',
           type: [
             'mapper',
@@ -6413,10 +6548,6 @@ export default {
               },
             },
           ],
-        },
-        {
-          name: 'needs_translation',
-          type: 'bool',
         },
         {
           anon: true,
@@ -6588,8 +6719,20 @@ export default {
           type: 'string',
         },
         {
+          name: 'has_filtered_message',
+          type: 'bool',
+        },
+        {
           name: 'filtered_message',
-          type: 'string',
+          type: [
+            'switch',
+            {
+              compareTo: 'has_filtered_message',
+              fields: {
+                true: 'string',
+              },
+            },
+          ],
         },
       ],
     ],
@@ -6948,10 +7091,6 @@ export default {
         },
         {
           name: 'block_network_ids_are_hashes',
-          type: 'bool',
-        },
-        {
-          name: 'tick_death_systems',
           type: 'bool',
         },
         {
@@ -7759,6 +7898,10 @@ export default {
           name: 'tick',
           type: 'varint64',
         },
+        {
+          name: 'ambient',
+          type: 'bool',
+        },
       ],
     ],
     packet_update_attributes: [
@@ -7864,14 +8007,17 @@ export default {
           type: 'varint64',
         },
         {
+          name: 'has_position',
+          type: 'bool',
+        },
+        {
           name: 'position',
           type: [
             'switch',
             {
-              compareTo: 'action_id',
+              compareTo: 'has_position',
               fields: {
-                mouse_over_entity: 'vec3f',
-                leave_vehicle: 'vec3f',
+                true: 'vec3f',
               },
             },
           ],
@@ -8056,7 +8202,7 @@ export default {
           type: [
             'mapper',
             {
-              type: 'zigzag32',
+              type: 'u8',
               mappings: {
                 0: 'none',
                 1: 'swing_arm',
@@ -8064,8 +8210,6 @@ export default {
                 3: 'wake_up',
                 4: 'critical_hit',
                 5: 'magic_critical_hit',
-                128: 'row_right',
-                129: 'row_left',
               },
             },
           ],
@@ -8079,30 +8223,17 @@ export default {
           type: 'lf32',
         },
         {
-          anon: true,
+          name: 'has_swing_source',
+          type: 'bool',
+        },
+        {
+          name: 'swing_source',
           type: [
             'switch',
             {
-              compareTo: 'action_id',
+              compareTo: 'has_swing_source',
               fields: {
-                row_right: [
-                  'container',
-                  [
-                    {
-                      name: 'rowing_time',
-                      type: 'lf32',
-                    },
-                  ],
-                ],
-                row_left: [
-                  'container',
-                  [
-                    {
-                      name: 'rowing_time',
-                      type: 'lf32',
-                    },
-                  ],
-                ],
+                true: 'string',
               },
             },
           ],
@@ -9050,12 +9181,6 @@ export default {
           type: 'varint',
         },
         {
-          name: '_enum_type',
-          type: [
-            'enum_size_based_on_values_len',
-          ],
-        },
-        {
           name: 'enum_values',
           type: [
             'array',
@@ -9104,17 +9229,7 @@ export default {
                       'array',
                       {
                         countType: 'varint',
-                        type: [
-                          'switch',
-                          {
-                            compareTo: '../_enum_type',
-                            fields: {
-                              byte: 'u8',
-                              short: 'lu16',
-                              int: 'lu32',
-                            },
-                          },
-                        ],
+                        type: 'lu32',
                       },
                     ],
                   },
@@ -9147,11 +9262,11 @@ export default {
                           [
                             {
                               name: 'index',
-                              type: 'lu16',
+                              type: 'varint',
                             },
                             {
                               name: 'value',
-                              type: 'lu16',
+                              type: 'varint',
                             },
                           ],
                         ],
@@ -9186,7 +9301,7 @@ export default {
                   },
                   {
                     name: 'permission_level',
-                    type: 'u8',
+                    type: 'string',
                   },
                   {
                     name: 'alias',
@@ -9198,7 +9313,7 @@ export default {
                       'array',
                       {
                         countType: 'varint',
-                        type: 'lu16',
+                        type: 'lu32',
                       },
                     ],
                   },
@@ -9423,7 +9538,7 @@ export default {
         },
         {
           name: 'version',
-          type: 'varint',
+          type: 'string',
         },
       ],
     ],
@@ -9524,22 +9639,11 @@ export default {
         },
         {
           name: 'output_type',
-          type: [
-            'mapper',
-            {
-              type: 'i8',
-              mappings: {
-                1: 'last',
-                2: 'silent',
-                3: 'all',
-                4: 'data_set',
-              },
-            },
-          ],
+          type: 'string',
         },
         {
           name: 'success_count',
-          type: 'varint',
+          type: 'lu32',
         },
         {
           name: 'output',
@@ -9551,12 +9655,12 @@ export default {
                 'container',
                 [
                   {
-                    name: 'success',
-                    type: 'bool',
-                  },
-                  {
                     name: 'message_id',
                     type: 'string',
+                  },
+                  {
+                    name: 'success',
+                    type: 'bool',
                   },
                   {
                     name: 'parameters',
@@ -9574,15 +9678,18 @@ export default {
           ],
         },
         {
-          name: 'data_set',
+          name: 'has_data',
+          type: 'bool',
+        },
+        {
+          name: 'data',
           type: [
             'switch',
             {
-              compareTo: 'output_type',
+              compareTo: 'has_data',
               fields: {
-                data_set: 'string',
+                true: 'string',
               },
-              default: 'void',
             },
           ],
         },
@@ -12181,58 +12288,20 @@ export default {
       [
         {
           name: 'type',
-          type: [
-            'mapper',
-            {
-              type: 'li32',
-              mappings: {
-                1: 'clear',
-                2: 'add_cube',
-              },
-            },
-          ],
+          type: 'string',
         },
         {
-          anon: true,
+          name: 'has_data',
+          type: 'bool',
+        },
+        {
+          name: 'data',
           type: [
             'switch',
             {
-              compareTo: 'type',
+              compareTo: 'has_data',
               fields: {
-                clear: 'void',
-                add_cube: [
-                  'container',
-                  [
-                    {
-                      name: 'text',
-                      type: 'string',
-                    },
-                    {
-                      name: 'position',
-                      type: 'vec3f',
-                    },
-                    {
-                      name: 'red',
-                      type: 'lf32',
-                    },
-                    {
-                      name: 'green',
-                      type: 'lf32',
-                    },
-                    {
-                      name: 'blue',
-                      type: 'lf32',
-                    },
-                    {
-                      name: 'alpha',
-                      type: 'lf32',
-                    },
-                    {
-                      name: 'duration',
-                      type: 'li64',
-                    },
-                  ],
-                ],
+                true: 'DebugMarkerData',
               },
             },
           ],
@@ -14016,6 +14085,16 @@ export default {
                     ],
                   },
                   {
+                    name: 'block_tags',
+                    type: [
+                      'array',
+                      {
+                        countType: 'varint',
+                        type: 'varint',
+                      },
+                    ],
+                  },
+                  {
                     name: 'entity_default',
                     type: [
                       'option',
@@ -14048,13 +14127,41 @@ export default {
                     type: 'string',
                   },
                   {
-                    name: 'exclude_blocks',
+                    name: 'exclusion_settings',
                     type: [
-                      'array',
-                      {
-                        countType: 'varint',
-                        type: 'string',
-                      },
+                      'container',
+                      [
+                        {
+                          name: 'blocks',
+                          type: [
+                            'array',
+                            {
+                              countType: 'varint',
+                              type: 'string',
+                            },
+                          ],
+                        },
+                        {
+                          name: 'entities',
+                          type: [
+                            'array',
+                            {
+                              countType: 'varint',
+                              type: 'string',
+                            },
+                          ],
+                        },
+                        {
+                          name: 'block_tags',
+                          type: [
+                            'array',
+                            {
+                              countType: 'varint',
+                              type: 'string',
+                            },
+                          ],
+                        },
+                      ],
                     ],
                   },
                   {
@@ -14512,7 +14619,7 @@ export default {
                 type: [
                   'mapper',
                   {
-                    type: 'u8',
+                    type: 'varint',
                     mappings: {
                       0: 'float',
                       1: 'bool',
@@ -14536,6 +14643,153 @@ export default {
                 ],
               },
             ],
+          ],
+        },
+      ],
+    ],
+    packet_clientbound_data_store: [
+      'container',
+      [
+        {
+          name: 'entries',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: [
+                'container',
+                [
+                  {
+                    name: 'type',
+                    type: [
+                      'mapper',
+                      {
+                        type: 'varint',
+                        mappings: {
+                          0: 'update',
+                          1: 'change',
+                          2: 'removal',
+                        },
+                      },
+                    ],
+                  },
+                  {
+                    anon: true,
+                    type: [
+                      'switch',
+                      {
+                        compareTo: 'type',
+                        fields: {
+                          update: [
+                            'container',
+                            [
+                              {
+                                name: 'name',
+                                type: 'string',
+                              },
+                              {
+                                name: 'property',
+                                type: 'string',
+                              },
+                              {
+                                name: 'path',
+                                type: 'string',
+                              },
+                              {
+                                name: 'data_type',
+                                type: [
+                                  'mapper',
+                                  {
+                                    type: 'varint',
+                                    mappings: {
+                                      0: 'double',
+                                      1: 'bool',
+                                      2: 'string',
+                                    },
+                                  },
+                                ],
+                              },
+                              {
+                                name: 'data',
+                                type: [
+                                  'switch',
+                                  {
+                                    compareTo: 'data_type',
+                                    fields: {
+                                      double: 'lf64',
+                                      bool: 'bool',
+                                      string: 'string',
+                                    },
+                                  },
+                                ],
+                              },
+                              {
+                                name: 'update_count',
+                                type: 'varint',
+                              },
+                            ],
+                          ],
+                          change: [
+                            'container',
+                            [
+                              {
+                                name: 'name',
+                                type: 'string',
+                              },
+                              {
+                                name: 'property',
+                                type: 'string',
+                              },
+                              {
+                                name: 'update_count',
+                                type: 'varint',
+                              },
+                              {
+                                name: 'data_type',
+                                type: [
+                                  'mapper',
+                                  {
+                                    type: 'varint',
+                                    mappings: {
+                                      0: 'double',
+                                      1: 'bool',
+                                      2: 'string',
+                                    },
+                                  },
+                                ],
+                              },
+                              {
+                                name: 'data',
+                                type: [
+                                  'switch',
+                                  {
+                                    compareTo: 'data_type',
+                                    fields: {
+                                      double: 'lf64',
+                                      bool: 'bool',
+                                      string: 'string',
+                                    },
+                                  },
+                                ],
+                              },
+                            ],
+                          ],
+                          removal: [
+                            'container',
+                            [
+                              {
+                                name: 'name',
+                                type: 'string',
+                              },
+                            ],
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                ],
+              ],
+            },
           ],
         },
       ],
@@ -14564,6 +14818,55 @@ export default {
         {
           name: 'reset',
           type: 'bool',
+        },
+      ],
+    ],
+    packet_serverbound_data_store: [
+      'container',
+      [
+        {
+          name: 'name',
+          type: 'string',
+        },
+        {
+          name: 'property',
+          type: 'string',
+        },
+        {
+          name: 'path',
+          type: 'string',
+        },
+        {
+          name: 'data_type',
+          type: [
+            'mapper',
+            {
+              type: 'varint',
+              mappings: {
+                0: 'double',
+                1: 'bool',
+                2: 'string',
+              },
+            },
+          ],
+        },
+        {
+          name: 'data',
+          type: [
+            'switch',
+            {
+              compareTo: 'data_type',
+              fields: {
+                double: 'lf64',
+                bool: 'bool',
+                string: 'string',
+              },
+            },
+          ],
+        },
+        {
+          name: 'update_count',
+          type: 'varint',
         },
       ],
     ],
