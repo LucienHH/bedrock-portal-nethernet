@@ -4,6 +4,7 @@
   "description": "A simple server implementation for the Bedrock Edition Nethernet protocol",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "repository": "https://github.com/LucienHH/bedrock-portal-nethernet",
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
