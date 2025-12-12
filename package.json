@@ -1,6 +1,6 @@
 {
   "name": "bedrock-portal-nethernet",
-  "version": "2.0.8",
+  "version": "2.0.9",
   "description": "A simple server implementation for the Bedrock Edition Nethernet protocol",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
