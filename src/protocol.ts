@@ -875,6 +875,9 @@ export default {
                     133: 'bed_enter_position',
                     134: 'seat_third_person_camera_radius',
                     135: 'seat_camera_relax_distance_smoothing',
+                    136: 'aim_assist_priority_preset_id',
+                    137: 'aim_assist_priority_category_id',
+                    138: 'aim_assist_priority_actor_id',
                   },
                 },
               ],
@@ -3186,30 +3189,7 @@ export default {
       [
         {
           name: 'type',
-          type: [
-            'mapper',
-            {
-              type: 'varint',
-              mappings: {
-                0: 'player',
-                1: 'block',
-                2: 'minecart_block',
-                3: 'dev_console',
-                4: 'test',
-                5: 'automation_player',
-                6: 'client_automation',
-                7: 'dedicated_server',
-                8: 'entity',
-                9: 'virtual',
-                10: 'game_argument',
-                11: 'entity_server',
-                12: 'precompiled',
-                13: 'game_director_entity_server',
-                14: 'script',
-                15: 'executor',
-              },
-            },
-          ],
+          type: 'string',
         },
         {
           name: 'uuid',
@@ -3221,32 +3201,7 @@ export default {
         },
         {
           name: 'player_entity_id',
-          type: [
-            'switch',
-            {
-              compareTo: 'type',
-              fields: {
-                dev_console: [
-                  'container',
-                  [
-                    {
-                      name: 'player_entity_id',
-                      type: 'zigzag64',
-                    },
-                  ],
-                ],
-                test: [
-                  'container',
-                  [
-                    {
-                      name: 'player_entity_id',
-                      type: 'zigzag64',
-                    },
-                  ],
-                ],
-              },
-            },
-          ],
+          type: 'li64',
         },
       ],
     ],
@@ -4368,6 +4323,25 @@ export default {
           575: 'ImitateCamelHusk',
           576: 'ItemSpearUse',
           577: 'ItemWoodenSpearUse',
+          578: 'SaddleInWater',
+          579: 'ItemStoneSpearAttackHit',
+          580: 'ItemIronSpearAttackHit',
+          581: 'ItemCopperSpearAttackHit',
+          582: 'ItemGoldenSpearAttackHit',
+          583: 'ItemDiamondSpearAttackHit',
+          584: 'ItemNetheriteSpearAttackHit',
+          585: 'ItemStoneSpearAttackMiss',
+          586: 'ItemIronSpearAttackMiss',
+          587: 'ItemCopperSpearAttackMiss',
+          588: 'ItemGoldenSpearAttackMiss',
+          589: 'ItemDiamondSpearAttackMiss',
+          590: 'ItemNetheriteSpearAttackMiss',
+          591: 'ItemStoneSpearUse',
+          592: 'ItemIronSpearUse',
+          593: 'ItemCopperSpearUse',
+          594: 'ItemGoldenSpearUse',
+          595: 'ItemDiamondSpearUse',
+          596: 'ItemNetheriteSpearUse',
         },
       },
     ],
@@ -4764,6 +4738,22 @@ export default {
           name: 'time',
           type: 'lf32',
         },
+        {
+          name: 'has_ease_type',
+          type: 'bool',
+        },
+        {
+          name: 'ease_type',
+          type: [
+            'switch',
+            {
+              compareTo: 'has_ease_type',
+              fields: {
+                true: 'u8',
+              },
+            },
+          ],
+        },
       ],
     ],
     CameraSplineInstruction: [
@@ -4774,8 +4764,20 @@ export default {
           type: 'lf32',
         },
         {
-          name: 'ease_type',
-          type: 'CameraSplineEaseType',
+          name: 'has_spline_type',
+          type: 'bool',
+        },
+        {
+          name: 'spline_type',
+          type: [
+            'switch',
+            {
+              compareTo: 'has_spline_type',
+              fields: {
+                true: 'u8',
+              },
+            },
+          ],
         },
         {
           name: 'curve',
@@ -4793,7 +4795,7 @@ export default {
             'array',
             {
               countType: 'varint',
-              type: 'vec2f',
+              type: 'CameraProgressOption',
             },
           ],
         },
@@ -4804,6 +4806,305 @@ export default {
             {
               countType: 'varint',
               type: 'CameraRotationOption',
+            },
+          ],
+        },
+      ],
+    ],
+    CameraProgressOption: [
+      'container',
+      [
+        {
+          name: 'value',
+          type: 'lf32',
+        },
+        {
+          name: 'time',
+          type: 'lf32',
+        },
+        {
+          name: 'has_ease_type',
+          type: 'bool',
+        },
+        {
+          name: 'ease_type',
+          type: [
+            'switch',
+            {
+              compareTo: 'has_ease_type',
+              fields: {
+                true: 'u8',
+              },
+            },
+          ],
+        },
+      ],
+    ],
+    CameraSplineDefinition: [
+      'container',
+      [
+        {
+          name: 'name',
+          type: 'string',
+        },
+        {
+          name: 'instruction',
+          type: 'CameraSplineInstruction',
+        },
+      ],
+    ],
+    CameraAimAssistActorPriorityData: [
+      'container',
+      [
+        {
+          name: 'preset_index',
+          type: 'li32',
+        },
+        {
+          name: 'category_index',
+          type: 'li32',
+        },
+        {
+          name: 'actor_index',
+          type: 'li32',
+        },
+        {
+          name: 'priority',
+          type: 'li32',
+        },
+      ],
+    ],
+    MemoryCategoryCounter: [
+      'container',
+      [
+        {
+          name: 'category',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'unknown',
+                1: 'invalid_size_unknown',
+                2: 'actor',
+                3: 'actor_animation',
+                4: 'actor_rendering',
+                5: 'balancer',
+                6: 'block_ticking_queues',
+                7: 'biome_storage',
+                8: 'cereal',
+                9: 'circuit_system',
+                10: 'client',
+                11: 'commands',
+                12: 'db_storage',
+                13: 'debug',
+                14: 'documentation',
+                15: 'ecs_systems',
+                16: 'fmod',
+                17: 'fonts',
+                18: 'im_gui',
+                19: 'input',
+                20: 'json_ui',
+                21: 'json_ui_control_factory_json',
+                22: 'json_ui_control_tree',
+                23: 'json_ui_control_tree_control_element',
+                24: 'json_ui_control_tree_populate_data_binding',
+                25: 'json_ui_control_tree_populate_focus',
+                26: 'json_ui_control_tree_populate_layout',
+                27: 'json_ui_control_tree_populate_other',
+                28: 'json_ui_control_tree_populate_sprite',
+                29: 'json_ui_control_tree_populate_text',
+                30: 'json_ui_control_tree_populate_tts',
+                31: 'json_ui_control_tree_visibility',
+                32: 'json_ui_create_ui',
+                33: 'json_ui_defs',
+                34: 'json_ui_layout_manager',
+                35: 'json_ui_layout_manager_remove_dependencies',
+                36: 'json_ui_layout_manager_init_variable',
+                37: 'languages',
+                38: 'level',
+                39: 'level_structures',
+                40: 'level_chunk',
+                41: 'level_chunk_gen',
+                42: 'level_chunk_gen_thread_local',
+                43: 'network',
+                44: 'marketplace',
+                45: 'material_dragon_compiled_definition',
+                46: 'material_dragon_material',
+                47: 'material_dragon_resource',
+                48: 'material_dragon_uniform_map',
+                49: 'material_render_material',
+                50: 'material_render_material_group',
+                51: 'material_variation_manager',
+                52: 'molang',
+                53: 'ore_ui',
+                54: 'persona',
+                55: 'player',
+                56: 'render_chunk',
+                57: 'render_chunk_index_buffer',
+                58: 'render_chunk_vertex_buffer',
+                59: 'rendering',
+                60: 'rendering_library',
+                61: 'request_log',
+                62: 'resource_packs',
+                63: 'sound',
+                64: 'sub_chunk_biome_data',
+                65: 'sub_chunk_block_data',
+                66: 'sub_chunk_light_data',
+                67: 'textures',
+                68: 'vr',
+                69: 'weather_renderer',
+                70: 'world_generator',
+                71: 'tasks',
+                72: 'test',
+                73: 'scripting',
+                74: 'scripting_runtime',
+                75: 'scripting_context',
+                76: 'scripting_context_bindings_mc',
+                77: 'scripting_context_bindings_gt',
+                78: 'scripting_context_run',
+                79: 'data_driven_ui',
+                80: 'data_driven_ui_defs',
+              },
+            },
+          ],
+        },
+        {
+          name: 'bytes',
+          type: 'lu64',
+        },
+      ],
+    ],
+    VoxelCells: [
+      'container',
+      [
+        {
+          name: 'x_size',
+          type: 'u8',
+        },
+        {
+          name: 'y_size',
+          type: 'u8',
+        },
+        {
+          name: 'z_size',
+          type: 'u8',
+        },
+        {
+          name: 'storage',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'u8',
+            },
+          ],
+        },
+      ],
+    ],
+    VoxelShape: [
+      'container',
+      [
+        {
+          name: 'cells',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'VoxelCells',
+            },
+          ],
+        },
+        {
+          name: 'x_coordinates',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'lf32',
+            },
+          ],
+        },
+        {
+          name: 'y_coordinates',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'lf32',
+            },
+          ],
+        },
+        {
+          name: 'z_coordinates',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'lf32',
+            },
+          ],
+        },
+      ],
+    ],
+    VoxelShapeNameEntry: [
+      'container',
+      [
+        {
+          name: 'name',
+          type: 'string',
+        },
+        {
+          name: 'id',
+          type: 'lu16',
+        },
+      ],
+    ],
+    GatheringJoinInfo: [
+      'container',
+      [
+        {
+          name: 'experience_id',
+          type: 'string',
+        },
+        {
+          name: 'experience_name',
+          type: 'string',
+        },
+        {
+          name: 'experience_world_id',
+          type: 'string',
+        },
+        {
+          name: 'experience_world_name',
+          type: 'string',
+        },
+        {
+          name: 'creator_id',
+          type: 'string',
+        },
+        {
+          name: 'store_id',
+          type: 'string',
+        },
+      ],
+    ],
+    ServerJoinInformation: [
+      'container',
+      [
+        {
+          name: 'has_gathering_info',
+          type: 'bool',
+        },
+        {
+          name: 'gathering_info',
+          type: [
+            'switch',
+            {
+              compareTo: 'has_gathering_info',
+              fields: {
+                true: 'GatheringJoinInfo',
+              },
             },
           ],
         },
@@ -4936,6 +5237,17 @@ export default {
           119: 'realms_timeline_required',
           120: 'guest_withough_host',
           121: 'failed_to_join_experience',
+          122: 'host_signed_out',
+          123: 'script_watchdog_exception',
+          124: 'script_memory_limit_exceeded',
+          125: 'storage_low_during_gameplay',
+          126: 'storage_full_during_gameplay',
+          127: 'level_storage_corruption',
+          128: 'edition_mismatch_vanilla_to_edu',
+          129: 'edition_mismatch_edu_to_vanilla',
+          130: 'editor_mismatch_editor_to_vanilla',
+          131: 'editor_mismatch_vanilla_to_editor',
+          132: 'deny_listed',
         },
       },
     ],
@@ -5078,10 +5390,7 @@ export default {
         },
         {
           name: 'has_default_overworld_surface',
-          type: [
-            'option',
-            'bool',
-          ],
+          type: 'bool',
         },
         {
           name: 'has_swamp_surface',
@@ -5147,6 +5456,22 @@ export default {
                 type: 'BiomeReplacementData',
               },
             ],
+          ],
+        },
+        {
+          name: 'has_village_type',
+          type: 'bool',
+        },
+        {
+          name: 'village_type',
+          type: [
+            'switch',
+            {
+              compareTo: 'has_village_type',
+              fields: {
+                true: 'u8',
+              },
+            },
           ],
         },
       ],
@@ -5724,6 +6049,22 @@ export default {
           7: 'sun_mie_strength',
           8: 'moon_mie_strength',
           9: 'sun_glare_shape',
+          10: 'chlorophyll',
+          11: 'cdom',
+          12: 'suspended_sediment',
+          13: 'waves_depth',
+          14: 'waves_frequency',
+          15: 'waves_frequency_scaling',
+          16: 'waves_speed',
+          17: 'waves_speed_scaling',
+          18: 'waves_shape',
+          19: 'waves_octaves',
+          20: 'waves_mix',
+          21: 'waves_pull',
+          22: 'waves_direction_increment',
+          23: 'midtones_contrast',
+          24: 'highlights_contrast',
+          25: 'shadows_contrast',
         },
       },
     ],
@@ -5984,6 +6325,13 @@ export default {
                 330: 'clientbound_data_store',
                 331: 'graphics_override_parameter',
                 332: 'serverbound_data_store',
+                333: 'clientbound_data_driven_ui_show_screen',
+                334: 'clientbound_data_driven_ui_close_all_screens',
+                335: 'clientbound_data_driven_ui_reload',
+                336: 'clientbound_texture_shift',
+                337: 'voxel_shapes',
+                338: 'camera_spline',
+                339: 'camera_aim_assist_actor_priority',
               },
             },
           ],
@@ -6221,6 +6569,13 @@ export default {
                 clientbound_data_store: 'packet_clientbound_data_store',
                 graphics_override_parameter: 'packet_graphics_override_parameter',
                 serverbound_data_store: 'packet_serverbound_data_store',
+                clientbound_data_driven_ui_show_screen: 'packet_clientbound_data_driven_ui_show_screen',
+                clientbound_data_driven_ui_close_all_screens: 'packet_clientbound_data_driven_ui_close_all_screens',
+                clientbound_data_driven_ui_reload: 'packet_clientbound_data_driven_ui_reload',
+                clientbound_texture_shift: 'packet_clientbound_texture_shift',
+                voxel_shapes: 'packet_voxel_shapes',
+                camera_spline: 'packet_camera_spline',
+                camera_aim_assist_actor_priority: 'packet_camera_aim_assist_actor_priority',
               },
             },
           ],
@@ -6448,80 +6803,6 @@ export default {
                 0: 'message_only',
                 1: 'authored',
                 2: 'parameters',
-              },
-            },
-          ],
-        },
-        {
-          anon: true,
-          type: [
-            'switch',
-            {
-              compareTo: 'category',
-              fields: {
-                message_only: [
-                  'container',
-                  [
-                    {
-                      name: 'raw',
-                      type: 'string',
-                    },
-                    {
-                      name: 'tip',
-                      type: 'string',
-                    },
-                    {
-                      name: 'system_message',
-                      type: 'string',
-                    },
-                    {
-                      name: 'text_object_whisper',
-                      type: 'string',
-                    },
-                    {
-                      name: 'text_object_announcement',
-                      type: 'string',
-                    },
-                    {
-                      name: 'text_object',
-                      type: 'string',
-                    },
-                  ],
-                ],
-                authored: [
-                  'container',
-                  [
-                    {
-                      name: 'chat',
-                      type: 'string',
-                    },
-                    {
-                      name: 'whisper',
-                      type: 'string',
-                    },
-                    {
-                      name: 'announcement',
-                      type: 'string',
-                    },
-                  ],
-                ],
-                parameters: [
-                  'container',
-                  [
-                    {
-                      name: 'translate',
-                      type: 'string',
-                    },
-                    {
-                      name: 'popup',
-                      type: 'string',
-                    },
-                    {
-                      name: 'jukebox_popup',
-                      type: 'string',
-                    },
-                  ],
-                ],
               },
             },
           ],
@@ -7010,22 +7291,6 @@ export default {
           type: 'bool',
         },
         {
-          name: 'server_identifier',
-          type: 'string',
-        },
-        {
-          name: 'world_identifier',
-          type: 'string',
-        },
-        {
-          name: 'scenario_identifier',
-          type: 'string',
-        },
-        {
-          name: 'owner_identifier',
-          type: 'string',
-        },
-        {
           name: 'level_id',
           type: 'string',
         },
@@ -7096,6 +7361,38 @@ export default {
         {
           name: 'server_controlled_sound',
           type: 'bool',
+        },
+        {
+          name: 'has_server_join_info',
+          type: 'bool',
+        },
+        {
+          name: 'server_join_info',
+          type: [
+            'switch',
+            {
+              compareTo: 'has_server_join_info',
+              fields: {
+                true: 'ServerJoinInformation',
+              },
+            },
+          ],
+        },
+        {
+          name: 'server_identifier',
+          type: 'string',
+        },
+        {
+          name: 'scenario_identifier',
+          type: 'string',
+        },
+        {
+          name: 'world_identifier',
+          type: 'string',
+        },
+        {
+          name: 'owner_identifier',
+          type: 'string',
         },
       ],
     ],
@@ -10113,11 +10410,15 @@ export default {
       'container',
       [
         {
+          name: 'inventory_slot',
+          type: 'zigzag32',
+        },
+        {
           name: 'type',
           type: [
             'mapper',
             {
-              type: 'u8',
+              type: 'varint',
               mappings: {
                 0: 'replace_page',
                 1: 'add_page',
@@ -10127,10 +10428,6 @@ export default {
               },
             },
           ],
-        },
-        {
-          name: 'slot',
-          type: 'u8',
         },
         {
           anon: true,
@@ -10144,7 +10441,7 @@ export default {
                   [
                     {
                       name: 'page_number',
-                      type: 'u8',
+                      type: 'zigzag32',
                     },
                     {
                       name: 'text',
@@ -10161,7 +10458,7 @@ export default {
                   [
                     {
                       name: 'page_number',
-                      type: 'u8',
+                      type: 'zigzag32',
                     },
                     {
                       name: 'text',
@@ -10178,7 +10475,7 @@ export default {
                   [
                     {
                       name: 'page_number',
-                      type: 'u8',
+                      type: 'zigzag32',
                     },
                   ],
                 ],
@@ -10187,11 +10484,11 @@ export default {
                   [
                     {
                       name: 'page1',
-                      type: 'u8',
+                      type: 'zigzag32',
                     },
                     {
                       name: 'page2',
-                      type: 'u8',
+                      type: 'zigzag32',
                     },
                   ],
                 ],
@@ -13752,9 +14049,9 @@ export default {
               type: 'zigzag32',
               mappings: {
                 0: 'none',
-                1: 'survival',
-                2: 'recipe_book',
-                3: 'creative',
+                1: 'inventory_only',
+                2: 'default',
+                3: 'recipe_book_only',
               },
             },
           ],
@@ -13767,9 +14064,9 @@ export default {
               type: 'zigzag32',
               mappings: {
                 0: 'none',
-                1: 'survival',
-                2: 'recipe_book',
-                3: 'creative',
+                1: 'inventory_only',
+                2: 'default',
+                3: 'recipe_book_only',
               },
             },
           ],
@@ -13919,6 +14216,16 @@ export default {
         {
           name: 'average_unaccounted_time_percent',
           type: 'lf32',
+        },
+        {
+          name: 'memory_category_values',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'MemoryCategoryCounter',
+            },
+          ],
         },
       ],
     ],
@@ -14095,6 +14402,28 @@ export default {
                     ],
                   },
                   {
+                    name: 'entity_type_families',
+                    type: [
+                      'array',
+                      {
+                        countType: 'varint',
+                        type: [
+                          'container',
+                          [
+                            {
+                              name: 'id',
+                              type: 'string',
+                            },
+                            {
+                              name: 'priority',
+                              type: 'li32',
+                            },
+                          ],
+                        ],
+                      },
+                    ],
+                  },
+                  {
                     name: 'entity_default',
                     type: [
                       'option',
@@ -14153,6 +14482,16 @@ export default {
                         },
                         {
                           name: 'block_tags',
+                          type: [
+                            'array',
+                            {
+                              countType: 'varint',
+                              type: 'string',
+                            },
+                          ],
+                        },
+                        {
+                          name: 'entity_type_families',
                           type: [
                             'array',
                             {
@@ -14441,7 +14780,7 @@ export default {
         },
         {
           name: 'entity_unique_id',
-          type: 'varint64',
+          type: 'zigzag64',
         },
         {
           name: 'position',
@@ -14725,7 +15064,11 @@ export default {
                               },
                               {
                                 name: 'update_count',
-                                type: 'varint',
+                                type: 'li32',
+                              },
+                              {
+                                name: 'path_update_count',
+                                type: 'li32',
                               },
                             ],
                           ],
@@ -14808,6 +15151,14 @@ export default {
           ],
         },
         {
+          name: 'float_value',
+          type: 'lf32',
+        },
+        {
+          name: 'vec3_value',
+          type: 'vec3f',
+        },
+        {
           name: 'biome_identifier',
           type: 'string',
         },
@@ -14867,6 +15218,137 @@ export default {
         {
           name: 'update_count',
           type: 'varint',
+        },
+        {
+          name: 'path_update_count',
+          type: 'li32',
+        },
+      ],
+    ],
+    packet_clientbound_data_driven_ui_show_screen: [
+      'container',
+      [
+        {
+          name: 'screen_id',
+          type: 'string',
+        },
+      ],
+    ],
+    packet_clientbound_data_driven_ui_close_all_screens: [
+      'container',
+      [],
+    ],
+    packet_clientbound_data_driven_ui_reload: [
+      'container',
+      [],
+    ],
+    packet_clientbound_texture_shift: [
+      'container',
+      [
+        {
+          name: 'action',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'invalid',
+                1: 'initialize',
+                2: 'start',
+                3: 'set_enabled',
+                4: 'sync',
+              },
+            },
+          ],
+        },
+        {
+          name: 'collection_name',
+          type: 'string',
+        },
+        {
+          name: 'from_step',
+          type: 'string',
+        },
+        {
+          name: 'to_step',
+          type: 'string',
+        },
+        {
+          name: 'all_steps',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'string',
+            },
+          ],
+        },
+        {
+          name: 'current_length_ticks',
+          type: 'varint64',
+        },
+        {
+          name: 'total_length_ticks',
+          type: 'varint64',
+        },
+        {
+          name: 'enabled',
+          type: 'bool',
+        },
+      ],
+    ],
+    packet_voxel_shapes: [
+      'container',
+      [
+        {
+          name: 'shapes',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'VoxelShape',
+            },
+          ],
+        },
+        {
+          name: 'name_map',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'VoxelShapeNameEntry',
+            },
+          ],
+        },
+      ],
+    ],
+    packet_camera_spline: [
+      'container',
+      [
+        {
+          name: 'splines',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'CameraSplineDefinition',
+            },
+          ],
+        },
+      ],
+    ],
+    packet_camera_aim_assist_actor_priority: [
+      'container',
+      [
+        {
+          name: 'priority_data',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'CameraAimAssistActorPriorityData',
+            },
+          ],
         },
       ],
     ],
