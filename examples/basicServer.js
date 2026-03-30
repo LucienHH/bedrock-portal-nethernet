@@ -9,7 +9,7 @@ const auth = new Authflow('example', './', { authTitle: Titles.XboxAppIOS, devic
 
 const server = new Server()
 
-server.listen(auth, 12445353312598012116n)
+server.listen(auth, 6788366549692986925n)
 
 server.on('connect', client => {
 
@@ -17,10 +17,30 @@ server.on('connect', client => {
 
     console.log(`Client ${client.connection.connectionId} has joined the server.`)
 
-    client.write('start_game', start_game)
+    client.write('resource_packs_info', {
+      must_accept: false,
+      has_addons: false,
+      has_scripts: false,
+      disable_vibrant_visuals: false,
+      world_template: {
+        uuid: '',
+        version: '',
+      },
+      texture_packs: [],
+    })
 
-    client.once('set_player_game_type', () => {
-      client.write('transfer', { server_address: 'bedrock.opblocks.com', port: 19132 })
+    client.write('resource_pack_stack', {
+      must_accept: false,
+      resource_packs: [],
+      game_version: '*',
+      experiments: [],
+      experiments_previously_used: false,
+      has_editor_packs: false,
+    })
+
+    client.once('resource_pack_client_response', async () => {
+      client.write('start_game', start_game)
+      client.write('transfer', { server_address: '', port: 19132 })
     })
 
   })
