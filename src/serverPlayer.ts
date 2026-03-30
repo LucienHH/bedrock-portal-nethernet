@@ -19,6 +19,25 @@ export const ClientStatus = {
   Initialized: 4, // play_status spawn sent by server, client responded with SetPlayerInit packet
 }
 
+const FULL_AUTHENTICATION = 0
+
+type LoginExtraData = {
+  displayName?: string
+  identity?: string
+  xuid?: string
+  XUID?: string
+  PlayFabID?: string
+  PlayFabTitleID?: string
+  [key: string]: unknown
+}
+
+type LoginUserData = {
+  extraData?: LoginExtraData
+  [key: string]: unknown
+}
+
+type LoginSkinData = Record<string, unknown>
+
 interface PlayerEvents {
   status: (status: number) => void
   loggingIn: (body: any) => void
@@ -43,7 +62,7 @@ export class Player extends TypedEmitter<PlayerEvents> {
   secretKeyBytes!: Buffer
 
   // defined in LoginVerify
-  decodeLoginJWT!: (authTokens: string[], skinTokens: string) => { key: string, userData: any, skinData: any }
+  decodeLoginJWT!: (authTokens: string[], skinTokens: string, authToken?: string) => Promise<{ key: string, userData: LoginUserData, skinData: LoginSkinData }>
   encodeLoginJWT!: (localChain: string, mojangChain: string[]) => void
 
   inLog?: (...args: any[]) => void
@@ -156,7 +175,7 @@ export class Player extends TypedEmitter<PlayerEvents> {
     return true
   }
 
-  onLogin(packet: any) {
+  async onLogin(packet: any) {
     const body = packet.data
     this.emit('loggingIn', body)
 
@@ -170,18 +189,31 @@ export class Player extends TypedEmitter<PlayerEvents> {
 
     try {
       const skinChain = tokens.client
-      const authChain = JSON.parse(tokens.identity)
-      let chain
-      if (authChain.Certificate) { // 1.21.90+
+      const authChain = JSON.parse(tokens.identity) as {
+        AuthenticationType?: number
+        Certificate?: string
+        Token?: string
+        chain?: string[]
+      }
+      const useOpenIdAuth = authChain.AuthenticationType === FULL_AUTHENTICATION || (authChain.AuthenticationType == null && Boolean(authChain.Token))
+      const authToken = useOpenIdAuth ? authChain.Token || '' : ''
+      let chain: string[] = []
+      if (useOpenIdAuth) {
+        if (!authToken) {
+          throw new Error('Invalid login packet: missing authentication token')
+        }
+      }
+      else if (authChain.Certificate) {
         chain = JSON.parse(authChain.Certificate).chain
       }
       else if (authChain.chain) {
         chain = authChain.chain
       }
-      else {
+
+      if (!authToken && chain.length === 0) {
         throw new Error('Invalid login packet: missing chain or Certificate')
       }
-      var { key, userData, skinData } = this.decodeLoginJWT(chain, skinChain) // eslint-disable-line
+      var { key, userData, skinData } = await this.decodeLoginJWT(chain, skinChain, authToken) // eslint-disable-line
     }
     catch (e) {
       debug(this.connection.connectionId, e)
@@ -196,9 +228,9 @@ export class Player extends TypedEmitter<PlayerEvents> {
     this.skinData = skinData
 
     this.profile = {
-      name: userData.extraData?.displayName,
-      uuid: userData.extraData?.identity,
-      xuid: userData.extraData?.xuid || userData.extraData?.XUID,
+      name: userData.extraData?.displayName || 'Player',
+      uuid: userData.extraData?.identity || '',
+      xuid: userData.extraData?.xuid || userData.extraData?.XUID || '0',
     }
     this.version = clientVer
 
@@ -271,7 +303,7 @@ export class Player extends TypedEmitter<PlayerEvents> {
         return
       // Below 1.19.30, this is the first packet.
       case 'login':
-        this.onLogin(des)
+        void this.onLogin(des)
         if (!this._sentNetworkSettings) this.sendNetworkSettings()
         return
       case 'client_to_server_handshake':
