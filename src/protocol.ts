@@ -878,6 +878,9 @@ export default {
                     136: 'aim_assist_priority_preset_id',
                     137: 'aim_assist_priority_category_id',
                     138: 'aim_assist_priority_actor_id',
+                    139: 'arrow_shooter_id',
+                    140: 'firework_direction',
+                    141: 'firework_shooter_id',
                   },
                 },
               ],
@@ -1221,7 +1224,7 @@ export default {
         },
         {
           name: 'y',
-          type: 'varint',
+          type: 'zigzag32',
         },
         {
           name: 'z',
@@ -1379,6 +1382,19 @@ export default {
             },
           ],
         },
+        {
+          name: 'client_cooldown_state',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'off',
+                1: 'on',
+              },
+            },
+          ],
+        },
       ],
     ],
     TransactionActions: [
@@ -1417,7 +1433,7 @@ export default {
                       [
                         {
                           name: 'inventory_id',
-                          type: 'WindowIDVarint',
+                          type: 'WindowIDZigzag32',
                         },
                       ],
                     ],
@@ -3620,6 +3636,41 @@ export default {
         },
       },
     ],
+    WindowIDZigzag32: [
+      'mapper',
+      {
+        type: 'zigzag32',
+        mappings: {
+          '0': 'inventory',
+          '1': 'first',
+          '100': 'last',
+          '119': 'offhand',
+          '120': 'armor',
+          '121': 'creative',
+          '122': 'hotbar',
+          '123': 'fixed_inventory',
+          '124': 'ui',
+          '-100': 'drop_contents',
+          '-24': 'beacon',
+          '-23': 'trading_output',
+          '-22': 'trading_use_inputs',
+          '-21': 'trading_input_2',
+          '-20': 'trading_input_1',
+          '-17': 'enchant_output',
+          '-16': 'enchant_material',
+          '-15': 'enchant_input',
+          '-13': 'anvil_output',
+          '-12': 'anvil_result',
+          '-11': 'anvil_material',
+          '-10': 'container_input',
+          '-5': 'crafting_use_ingredient',
+          '-4': 'crafting_result',
+          '-3': 'crafting_remove_ingredient',
+          '-2': 'crafting_add_ingredient',
+          '-1': 'none',
+        },
+      },
+    ],
     WindowType: [
       'mapper',
       {
@@ -3737,6 +3788,9 @@ export default {
           62: 'crafter',
           63: 'dynamic',
           64: 'registry',
+          65: 'recipe_food',
+          66: 'recipe_blocks',
+          67: 'recipe_furnace_items',
         },
       },
     ],
@@ -4342,6 +4396,8 @@ export default {
           594: 'ItemGoldenSpearUse',
           595: 'ItemDiamondSpearUse',
           596: 'ItemNetheriteSpearUse',
+          597: 'PauseGrowth',
+          598: 'ResetGrowth',
         },
       },
     ],
@@ -4749,7 +4805,7 @@ export default {
             {
               compareTo: 'has_ease_type',
               fields: {
-                true: 'u8',
+                true: 'string',
               },
             },
           ],
@@ -4774,7 +4830,7 @@ export default {
             {
               compareTo: 'has_spline_type',
               fields: {
-                true: 'u8',
+                true: 'string',
               },
             },
           ],
@@ -4809,6 +4865,20 @@ export default {
             },
           ],
         },
+        {
+          name: 'spline_identifier',
+          type: [
+            'option',
+            'string',
+          ],
+        },
+        {
+          name: 'load_from_json',
+          type: [
+            'option',
+            'bool',
+          ],
+        },
       ],
     ],
     CameraProgressOption: [
@@ -4833,7 +4903,7 @@ export default {
             {
               compareTo: 'has_ease_type',
               fields: {
-                true: 'u8',
+                true: 'string',
               },
             },
           ],
@@ -4848,8 +4918,45 @@ export default {
           type: 'string',
         },
         {
-          name: 'instruction',
-          type: 'CameraSplineInstruction',
+          name: 'total_time',
+          type: 'lf32',
+        },
+        {
+          name: 'spline_type',
+          type: [
+            'option',
+            'string',
+          ],
+        },
+        {
+          name: 'control_points',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'vec3f',
+            },
+          ],
+        },
+        {
+          name: 'progress_key_frames',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'CameraProgressOption',
+            },
+          ],
+        },
+        {
+          name: 'rotation_key_frames',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'CameraRotationOption',
+            },
+          ],
         },
       ],
     ],
@@ -4889,44 +4996,44 @@ export default {
                 2: 'actor',
                 3: 'actor_animation',
                 4: 'actor_rendering',
-                5: 'balancer',
-                6: 'block_ticking_queues',
-                7: 'biome_storage',
-                8: 'cereal',
-                9: 'circuit_system',
-                10: 'client',
-                11: 'commands',
-                12: 'db_storage',
-                13: 'debug',
-                14: 'documentation',
-                15: 'ecs_systems',
-                16: 'fmod',
-                17: 'fonts',
-                18: 'im_gui',
-                19: 'input',
-                20: 'json_ui',
-                21: 'json_ui_control_factory_json',
-                22: 'json_ui_control_tree',
-                23: 'json_ui_control_tree_control_element',
-                24: 'json_ui_control_tree_populate_data_binding',
-                25: 'json_ui_control_tree_populate_focus',
-                26: 'json_ui_control_tree_populate_layout',
-                27: 'json_ui_control_tree_populate_other',
-                28: 'json_ui_control_tree_populate_sprite',
-                29: 'json_ui_control_tree_populate_text',
-                30: 'json_ui_control_tree_populate_tts',
-                31: 'json_ui_control_tree_visibility',
-                32: 'json_ui_create_ui',
-                33: 'json_ui_defs',
-                34: 'json_ui_layout_manager',
-                35: 'json_ui_layout_manager_remove_dependencies',
-                36: 'json_ui_layout_manager_init_variable',
-                37: 'languages',
-                38: 'level',
-                39: 'level_structures',
-                40: 'level_chunk',
-                41: 'level_chunk_gen',
-                42: 'level_chunk_gen_thread_local',
+                5: 'block_ticking_queues',
+                6: 'biome_storage',
+                7: 'cereal',
+                8: 'circuit_system',
+                9: 'client',
+                10: 'commands',
+                11: 'db_storage',
+                12: 'debug',
+                13: 'documentation',
+                14: 'ecs_systems',
+                15: 'fmod',
+                16: 'fonts',
+                17: 'im_gui',
+                18: 'input',
+                19: 'json_ui',
+                20: 'json_ui_control_factory_json',
+                21: 'json_ui_control_tree',
+                22: 'json_ui_control_tree_control_element',
+                23: 'json_ui_control_tree_populate_data_binding',
+                24: 'json_ui_control_tree_populate_focus',
+                25: 'json_ui_control_tree_populate_layout',
+                26: 'json_ui_control_tree_populate_other',
+                27: 'json_ui_control_tree_populate_sprite',
+                28: 'json_ui_control_tree_populate_text',
+                29: 'json_ui_control_tree_populate_tts',
+                30: 'json_ui_control_tree_visibility',
+                31: 'json_ui_create_ui',
+                32: 'json_ui_defs',
+                33: 'json_ui_layout_manager',
+                34: 'json_ui_layout_manager_remove_dependencies',
+                35: 'json_ui_layout_manager_init_variable',
+                36: 'languages',
+                37: 'level',
+                38: 'level_structures',
+                39: 'level_chunk',
+                40: 'level_chunk_gen',
+                41: 'level_chunk_gen_thread_local',
+                42: 'light_volume_manager',
                 43: 'network',
                 44: 'marketplace',
                 45: 'material_dragon_compiled_definition',
@@ -4965,6 +5072,17 @@ export default {
                 78: 'scripting_context_run',
                 79: 'data_driven_ui',
                 80: 'data_driven_ui_defs',
+                81: 'gameface',
+                82: 'gameface_system',
+                83: 'gameface_dom',
+                84: 'gameface_css',
+                85: 'gameface_display',
+                86: 'gameface_temp_allocator',
+                87: 'gameface_pool_allocator',
+                88: 'gameface_dump',
+                89: 'gameface_media',
+                90: 'gameface_json',
+                91: 'gameface_script_engine',
               },
             },
           ],
@@ -5065,7 +5183,7 @@ export default {
       [
         {
           name: 'experience_id',
-          type: 'string',
+          type: 'uuid',
         },
         {
           name: 'experience_name',
@@ -5073,7 +5191,7 @@ export default {
         },
         {
           name: 'experience_world_id',
-          type: 'string',
+          type: 'uuid',
         },
         {
           name: 'experience_world_name',
@@ -5084,7 +5202,41 @@ export default {
           type: 'string',
         },
         {
+          name: 'unknown_uuid_1',
+          type: 'uuid',
+        },
+        {
+          name: 'unknown_uuid_2',
+          type: 'uuid',
+        },
+        {
+          name: 'server_id',
+          type: 'string',
+        },
+      ],
+    ],
+    StoreEntryPointInfo: [
+      'container',
+      [
+        {
           name: 'store_id',
+          type: 'string',
+        },
+        {
+          name: 'store_name',
+          type: 'string',
+        },
+      ],
+    ],
+    PresenceInfo: [
+      'container',
+      [
+        {
+          name: 'experience_name',
+          type: 'string',
+        },
+        {
+          name: 'world_name',
           type: 'string',
         },
       ],
@@ -5106,6 +5258,20 @@ export default {
                 true: 'GatheringJoinInfo',
               },
             },
+          ],
+        },
+        {
+          name: 'store_entry_point_info',
+          type: [
+            'option',
+            'StoreEntryPointInfo',
+          ],
+        },
+        {
+          name: 'presence_info',
+          type: [
+            'option',
+            'PresenceInfo',
           ],
         },
       ],
@@ -6008,16 +6174,7 @@ export default {
           29: 'InElastic',
           30: 'OutElastic',
           31: 'InOutElastic',
-        },
-      },
-    ],
-    CameraSplineEaseType: [
-      'mapper',
-      {
-        type: 'u8',
-        mappings: {
-          0: 'catmull_rom',
-          1: 'linear',
+          32: 'InverseLerp',
         },
       },
     ],
@@ -6065,6 +6222,29 @@ export default {
           23: 'midtones_contrast',
           24: 'highlights_contrast',
           25: 'shadows_contrast',
+          26: 'highlights_gain',
+          27: 'highlights_gamma',
+          28: 'highlights_offset',
+          29: 'highlights_saturation',
+          30: 'midtones_gain',
+          31: 'midtones_gamma',
+          32: 'midtones_offset',
+          33: 'midtones_saturation',
+          34: 'shadows_gain',
+          35: 'shadows_gamma',
+          36: 'shadows_offset',
+          37: 'shadows_saturation',
+          38: 'highlights_min',
+          39: 'shadows_max',
+          40: 'temperature',
+          41: 'sun_color',
+          42: 'sun_illuminance',
+          43: 'moon_color',
+          44: 'moon_illuminance',
+          45: 'flash_color',
+          46: 'flash_illuminance',
+          47: 'ambient_color',
+          48: 'ambient_illuminance',
         },
       },
     ],
@@ -6086,6 +6266,556 @@ export default {
         {
           name: 'duration',
           type: 'lu64',
+        },
+      ],
+    ],
+    DataStorePropertyValue: [
+      'container',
+      [
+        {
+          name: 'type',
+          type: [
+            'mapper',
+            {
+              type: 'li32',
+              mappings: {
+                0: 'none',
+                1: 'bool',
+                2: 'int64',
+                4: 'string',
+                6: 'map',
+              },
+            },
+          ],
+        },
+        {
+          name: 'value',
+          type: [
+            'switch',
+            {
+              compareTo: 'type',
+              fields: {
+                none: 'void',
+                bool: 'bool',
+                int64: 'li64',
+                string: 'string',
+                map: [
+                  'array',
+                  {
+                    countType: 'varint',
+                    type: 'DataStoreMapEntry',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    ],
+    DataStoreMapEntry: [
+      'container',
+      [
+        {
+          name: 'key',
+          type: 'string',
+        },
+        {
+          name: 'value',
+          type: 'DataStorePropertyValue',
+        },
+      ],
+    ],
+    DataStoreChangeEntry: [
+      'container',
+      [
+        {
+          name: 'change_type',
+          type: [
+            'mapper',
+            {
+              type: 'lu32',
+              mappings: {
+                0: 'update',
+                1: 'change',
+                2: 'removal',
+              },
+            },
+          ],
+        },
+        {
+          anon: true,
+          type: [
+            'switch',
+            {
+              compareTo: 'change_type',
+              fields: {
+                update: [
+                  'container',
+                  [
+                    {
+                      name: 'name',
+                      type: 'string',
+                    },
+                    {
+                      name: 'property',
+                      type: 'string',
+                    },
+                    {
+                      name: 'path',
+                      type: 'string',
+                    },
+                    {
+                      name: 'data_type',
+                      type: [
+                        'mapper',
+                        {
+                          type: 'lu32',
+                          mappings: {
+                            0: 'double',
+                            1: 'bool',
+                            2: 'string',
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      name: 'data',
+                      type: [
+                        'switch',
+                        {
+                          compareTo: 'data_type',
+                          fields: {
+                            double: 'lf64',
+                            bool: 'bool',
+                            string: 'string',
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      name: 'update_count',
+                      type: 'lu32',
+                    },
+                    {
+                      name: 'path_update_count',
+                      type: 'lu32',
+                    },
+                  ],
+                ],
+                change: [
+                  'container',
+                  [
+                    {
+                      name: 'name',
+                      type: 'string',
+                    },
+                    {
+                      name: 'property',
+                      type: 'string',
+                    },
+                    {
+                      name: 'update_count',
+                      type: 'lu32',
+                    },
+                    {
+                      name: 'new_value',
+                      type: 'DataStorePropertyValue',
+                    },
+                  ],
+                ],
+                removal: [
+                  'container',
+                  [
+                    {
+                      name: 'name',
+                      type: 'string',
+                    },
+                  ],
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    ],
+    WaypointWorldPosition: [
+      'container',
+      [
+        {
+          name: 'position',
+          type: 'vec3f',
+        },
+        {
+          name: 'dimension_id',
+          type: 'zigzag32',
+        },
+      ],
+    ],
+    Waypoint: [
+      'container',
+      [
+        {
+          name: 'update_flags',
+          type: 'lu32',
+        },
+        {
+          name: 'visible',
+          type: [
+            'option',
+            'bool',
+          ],
+        },
+        {
+          name: 'world_position',
+          type: [
+            'option',
+            'WaypointWorldPosition',
+          ],
+        },
+        {
+          name: 'texture_id',
+          type: [
+            'option',
+            'lu32',
+          ],
+        },
+        {
+          name: 'color',
+          type: [
+            'option',
+            'li32',
+          ],
+        },
+        {
+          name: 'client_position_authority',
+          type: [
+            'option',
+            'bool',
+          ],
+        },
+        {
+          name: 'actor_unique_id',
+          type: [
+            'option',
+            'zigzag64',
+          ],
+        },
+      ],
+    ],
+    LocatorBarWaypoint: [
+      'container',
+      [
+        {
+          name: 'group_handle',
+          type: 'uuid',
+        },
+        {
+          name: 'waypoint',
+          type: 'Waypoint',
+        },
+        {
+          name: 'action',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'none',
+                1: 'add',
+                2: 'remove',
+                3: 'update',
+              },
+            },
+          ],
+        },
+      ],
+    ],
+    SyncWorldClockStateData: [
+      'container',
+      [
+        {
+          name: 'clock_id',
+          type: 'varint64',
+        },
+        {
+          name: 'time',
+          type: 'zigzag32',
+        },
+        {
+          name: 'paused',
+          type: 'bool',
+        },
+      ],
+    ],
+    TimeMarkerData: [
+      'container',
+      [
+        {
+          name: 'id',
+          type: 'varint64',
+        },
+        {
+          name: 'name',
+          type: 'string',
+        },
+        {
+          name: 'time',
+          type: 'zigzag32',
+        },
+        {
+          name: 'period',
+          type: [
+            'option',
+            'li32',
+          ],
+        },
+      ],
+    ],
+    WorldClockData: [
+      'container',
+      [
+        {
+          name: 'id',
+          type: 'varint64',
+        },
+        {
+          name: 'name',
+          type: 'string',
+        },
+        {
+          name: 'time',
+          type: 'zigzag32',
+        },
+        {
+          name: 'paused',
+          type: 'bool',
+        },
+        {
+          name: 'time_markers',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'TimeMarkerData',
+            },
+          ],
+        },
+      ],
+    ],
+    AttributeLayerSettings: [
+      'container',
+      [
+        {
+          name: 'priority',
+          type: 'li32',
+        },
+        {
+          name: 'weight_type',
+          type: [
+            'mapper',
+            {
+              type: 'varint',
+              mappings: {
+                0: 'float',
+                1: 'string',
+              },
+            },
+          ],
+        },
+        {
+          anon: true,
+          type: [
+            'switch',
+            {
+              compareTo: 'weight_type',
+              fields: {
+                float: [
+                  'container',
+                  [
+                    {
+                      name: 'float_weight',
+                      type: 'lf32',
+                    },
+                  ],
+                ],
+                string: [
+                  'container',
+                  [
+                    {
+                      name: 'string_weight',
+                      type: 'string',
+                    },
+                  ],
+                ],
+              },
+            },
+          ],
+        },
+        {
+          name: 'enabled',
+          type: 'bool',
+        },
+        {
+          name: 'transitions_paused',
+          type: 'bool',
+        },
+      ],
+    ],
+    AttributeData: [
+      'container',
+      [
+        {
+          name: 'type',
+          type: [
+            'mapper',
+            {
+              type: 'varint',
+              mappings: {
+                0: 'bool',
+                1: 'float',
+                2: 'colour',
+              },
+            },
+          ],
+        },
+        {
+          anon: true,
+          type: [
+            'switch',
+            {
+              compareTo: 'type',
+              fields: {
+                bool: [
+                  'container',
+                  [
+                    {
+                      name: 'bool_value',
+                      type: 'bool',
+                    },
+                    {
+                      name: 'bool_operation',
+                      type: [
+                        'option',
+                        'li32',
+                      ],
+                    },
+                  ],
+                ],
+                float: [
+                  'container',
+                  [
+                    {
+                      name: 'float_value',
+                      type: 'lf32',
+                    },
+                    {
+                      name: 'float_operation',
+                      type: [
+                        'option',
+                        'li32',
+                      ],
+                    },
+                    {
+                      name: 'float_constraint_min',
+                      type: [
+                        'option',
+                        'lf32',
+                      ],
+                    },
+                    {
+                      name: 'float_constraint_max',
+                      type: [
+                        'option',
+                        'lf32',
+                      ],
+                    },
+                  ],
+                ],
+                colour: [
+                  'container',
+                  [
+                    {
+                      name: 'colour_value',
+                      type: 'li32',
+                    },
+                    {
+                      name: 'colour_operation',
+                      type: [
+                        'option',
+                        'li32',
+                      ],
+                    },
+                  ],
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    ],
+    EnvironmentAttributeData: [
+      'container',
+      [
+        {
+          name: 'attribute_name',
+          type: 'string',
+        },
+        {
+          name: 'from_attribute',
+          type: [
+            'option',
+            'AttributeData',
+          ],
+        },
+        {
+          name: 'attribute',
+          type: 'AttributeData',
+        },
+        {
+          name: 'to_attribute',
+          type: [
+            'option',
+            'AttributeData',
+          ],
+        },
+        {
+          name: 'current_transition_ticks',
+          type: 'lu32',
+        },
+        {
+          name: 'total_transition_ticks',
+          type: 'lu32',
+        },
+        {
+          name: 'ease_type',
+          type: 'li32',
+        },
+      ],
+    ],
+    AttributeLayerData: [
+      'container',
+      [
+        {
+          name: 'name',
+          type: 'string',
+        },
+        {
+          name: 'dimension_id',
+          type: 'zigzag32',
+        },
+        {
+          name: 'settings',
+          type: 'AttributeLayerSettings',
+        },
+        {
+          name: 'environment_attributes',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'EnvironmentAttributeData',
+            },
+          ],
         },
       ],
     ],
@@ -6326,12 +7056,18 @@ export default {
                 331: 'graphics_override_parameter',
                 332: 'serverbound_data_store',
                 333: 'clientbound_data_driven_ui_show_screen',
-                334: 'clientbound_data_driven_ui_close_all_screens',
+                334: 'clientbound_data_driven_ui_close_screen',
                 335: 'clientbound_data_driven_ui_reload',
                 336: 'clientbound_texture_shift',
                 337: 'voxel_shapes',
                 338: 'camera_spline',
                 339: 'camera_aim_assist_actor_priority',
+                340: 'resource_packs_ready_for_validation',
+                341: 'locator_bar',
+                342: 'party_changed',
+                343: 'serverbound_data_driven_screen_closed',
+                344: 'sync_world_clocks',
+                345: 'clientbound_attribute_layer_sync',
               },
             },
           ],
@@ -6570,12 +7306,18 @@ export default {
                 graphics_override_parameter: 'packet_graphics_override_parameter',
                 serverbound_data_store: 'packet_serverbound_data_store',
                 clientbound_data_driven_ui_show_screen: 'packet_clientbound_data_driven_ui_show_screen',
-                clientbound_data_driven_ui_close_all_screens: 'packet_clientbound_data_driven_ui_close_all_screens',
+                clientbound_data_driven_ui_close_screen: 'packet_clientbound_data_driven_ui_close_screen',
                 clientbound_data_driven_ui_reload: 'packet_clientbound_data_driven_ui_reload',
                 clientbound_texture_shift: 'packet_clientbound_texture_shift',
                 voxel_shapes: 'packet_voxel_shapes',
                 camera_spline: 'packet_camera_spline',
                 camera_aim_assist_actor_priority: 'packet_camera_aim_assist_actor_priority',
+                resource_packs_ready_for_validation: 'packet_resource_packs_ready_for_validation',
+                locator_bar: 'packet_locator_bar',
+                party_changed: 'packet_party_changed',
+                serverbound_data_driven_screen_closed: 'packet_serverbound_data_driven_screen_closed',
+                sync_world_clocks: 'packet_sync_world_clocks',
+                clientbound_attribute_layer_sync: 'packet_clientbound_attribute_layer_sync',
               },
             },
           ],
@@ -13608,10 +14350,6 @@ export default {
           name: 'locks',
           type: 'InputLockFlags',
         },
-        {
-          name: 'position',
-          type: 'vec3f',
-        },
       ],
     ],
     packet_client_cheat_ability: [
@@ -14990,148 +15728,12 @@ export default {
       'container',
       [
         {
-          name: 'entries',
+          name: 'updates',
           type: [
             'array',
             {
               countType: 'varint',
-              type: [
-                'container',
-                [
-                  {
-                    name: 'type',
-                    type: [
-                      'mapper',
-                      {
-                        type: 'varint',
-                        mappings: {
-                          0: 'update',
-                          1: 'change',
-                          2: 'removal',
-                        },
-                      },
-                    ],
-                  },
-                  {
-                    anon: true,
-                    type: [
-                      'switch',
-                      {
-                        compareTo: 'type',
-                        fields: {
-                          update: [
-                            'container',
-                            [
-                              {
-                                name: 'name',
-                                type: 'string',
-                              },
-                              {
-                                name: 'property',
-                                type: 'string',
-                              },
-                              {
-                                name: 'path',
-                                type: 'string',
-                              },
-                              {
-                                name: 'data_type',
-                                type: [
-                                  'mapper',
-                                  {
-                                    type: 'varint',
-                                    mappings: {
-                                      0: 'double',
-                                      1: 'bool',
-                                      2: 'string',
-                                    },
-                                  },
-                                ],
-                              },
-                              {
-                                name: 'data',
-                                type: [
-                                  'switch',
-                                  {
-                                    compareTo: 'data_type',
-                                    fields: {
-                                      double: 'lf64',
-                                      bool: 'bool',
-                                      string: 'string',
-                                    },
-                                  },
-                                ],
-                              },
-                              {
-                                name: 'update_count',
-                                type: 'li32',
-                              },
-                              {
-                                name: 'path_update_count',
-                                type: 'li32',
-                              },
-                            ],
-                          ],
-                          change: [
-                            'container',
-                            [
-                              {
-                                name: 'name',
-                                type: 'string',
-                              },
-                              {
-                                name: 'property',
-                                type: 'string',
-                              },
-                              {
-                                name: 'update_count',
-                                type: 'varint',
-                              },
-                              {
-                                name: 'data_type',
-                                type: [
-                                  'mapper',
-                                  {
-                                    type: 'varint',
-                                    mappings: {
-                                      0: 'double',
-                                      1: 'bool',
-                                      2: 'string',
-                                    },
-                                  },
-                                ],
-                              },
-                              {
-                                name: 'data',
-                                type: [
-                                  'switch',
-                                  {
-                                    compareTo: 'data_type',
-                                    fields: {
-                                      double: 'lf64',
-                                      bool: 'bool',
-                                      string: 'string',
-                                    },
-                                  },
-                                ],
-                              },
-                            ],
-                          ],
-                          removal: [
-                            'container',
-                            [
-                              {
-                                name: 'name',
-                                type: 'string',
-                              },
-                            ],
-                          ],
-                        },
-                      },
-                    ],
-                  },
-                ],
-              ],
+              type: 'DataStoreChangeEntry',
             },
           ],
         },
@@ -15152,11 +15754,17 @@ export default {
         },
         {
           name: 'float_value',
-          type: 'lf32',
+          type: [
+            'option',
+            'lf32',
+          ],
         },
         {
           name: 'vec3_value',
-          type: 'vec3f',
+          type: [
+            'option',
+            'vec3f',
+          ],
         },
         {
           name: 'biome_identifier',
@@ -15192,7 +15800,7 @@ export default {
           type: [
             'mapper',
             {
-              type: 'varint',
+              type: 'lu32',
               mappings: {
                 0: 'double',
                 1: 'bool',
@@ -15217,11 +15825,11 @@ export default {
         },
         {
           name: 'update_count',
-          type: 'varint',
+          type: 'lu32',
         },
         {
           name: 'path_update_count',
-          type: 'li32',
+          type: 'lu32',
         },
       ],
     ],
@@ -15232,11 +15840,30 @@ export default {
           name: 'screen_id',
           type: 'string',
         },
+        {
+          name: 'form_id',
+          type: 'lu32',
+        },
+        {
+          name: 'data_instance_id',
+          type: [
+            'option',
+            'lu32',
+          ],
+        },
       ],
     ],
-    packet_clientbound_data_driven_ui_close_all_screens: [
+    packet_clientbound_data_driven_ui_close_screen: [
       'container',
-      [],
+      [
+        {
+          name: 'form_id',
+          type: [
+            'option',
+            'lu32',
+          ],
+        },
+      ],
     ],
     packet_clientbound_data_driven_ui_reload: [
       'container',
@@ -15320,6 +15947,10 @@ export default {
             },
           ],
         },
+        {
+          name: 'custom_shape_count',
+          type: 'lu16',
+        },
       ],
     ],
     packet_camera_spline: [
@@ -15347,6 +15978,270 @@ export default {
             {
               countType: 'varint',
               type: 'CameraAimAssistActorPriorityData',
+            },
+          ],
+        },
+      ],
+    ],
+    packet_resource_packs_ready_for_validation: [
+      'container',
+      [],
+    ],
+    packet_locator_bar: [
+      'container',
+      [
+        {
+          name: 'waypoints',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'LocatorBarWaypoint',
+            },
+          ],
+        },
+      ],
+    ],
+    packet_party_changed: [
+      'container',
+      [
+        {
+          name: 'party_id',
+          type: 'string',
+        },
+      ],
+    ],
+    packet_serverbound_data_driven_screen_closed: [
+      'container',
+      [
+        {
+          name: 'form_id',
+          type: [
+            'option',
+            'lu32',
+          ],
+        },
+        {
+          name: 'close_reason',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'programmatic_close',
+                1: 'programmatic_close_all',
+                2: 'client_canceled',
+                3: 'user_busy',
+                4: 'invalid_form',
+              },
+            },
+          ],
+        },
+      ],
+    ],
+    packet_sync_world_clocks: [
+      'container',
+      [
+        {
+          name: 'payload_type',
+          type: [
+            'mapper',
+            {
+              type: 'varint',
+              mappings: {
+                0: 'sync_state',
+                1: 'initialize_registry',
+                2: 'add_time_marker',
+                3: 'remove_time_marker',
+              },
+            },
+          ],
+        },
+        {
+          anon: true,
+          type: [
+            'switch',
+            {
+              compareTo: 'payload_type',
+              fields: {
+                sync_state: [
+                  'container',
+                  [
+                    {
+                      name: 'sync_states',
+                      type: [
+                        'array',
+                        {
+                          countType: 'varint',
+                          type: 'SyncWorldClockStateData',
+                        },
+                      ],
+                    },
+                  ],
+                ],
+                initialize_registry: [
+                  'container',
+                  [
+                    {
+                      name: 'clocks',
+                      type: [
+                        'array',
+                        {
+                          countType: 'varint',
+                          type: 'WorldClockData',
+                        },
+                      ],
+                    },
+                  ],
+                ],
+                add_time_marker: [
+                  'container',
+                  [
+                    {
+                      name: 'add_clock_id',
+                      type: 'varint64',
+                    },
+                    {
+                      name: 'add_time_markers',
+                      type: [
+                        'array',
+                        {
+                          countType: 'varint',
+                          type: 'TimeMarkerData',
+                        },
+                      ],
+                    },
+                  ],
+                ],
+                remove_time_marker: [
+                  'container',
+                  [
+                    {
+                      name: 'remove_clock_id',
+                      type: 'varint64',
+                    },
+                    {
+                      name: 'remove_time_marker_ids',
+                      type: [
+                        'array',
+                        {
+                          countType: 'varint',
+                          type: 'varint64',
+                        },
+                      ],
+                    },
+                  ],
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    ],
+    packet_clientbound_attribute_layer_sync: [
+      'container',
+      [
+        {
+          name: 'payload_type',
+          type: [
+            'mapper',
+            {
+              type: 'varint',
+              mappings: {
+                0: 'update_layers',
+                1: 'update_settings',
+                2: 'update_environment',
+                3: 'remove_environment',
+              },
+            },
+          ],
+        },
+        {
+          anon: true,
+          type: [
+            'switch',
+            {
+              compareTo: 'payload_type',
+              fields: {
+                update_layers: [
+                  'container',
+                  [
+                    {
+                      name: 'layers',
+                      type: [
+                        'array',
+                        {
+                          countType: 'varint',
+                          type: 'AttributeLayerData',
+                        },
+                      ],
+                    },
+                  ],
+                ],
+                update_settings: [
+                  'container',
+                  [
+                    {
+                      name: 'layer_name',
+                      type: 'string',
+                    },
+                    {
+                      name: 'dimension_id',
+                      type: 'zigzag32',
+                    },
+                    {
+                      name: 'settings',
+                      type: 'AttributeLayerSettings',
+                    },
+                  ],
+                ],
+                update_environment: [
+                  'container',
+                  [
+                    {
+                      name: 'layer_name',
+                      type: 'string',
+                    },
+                    {
+                      name: 'dimension_id',
+                      type: 'zigzag32',
+                    },
+                    {
+                      name: 'environment_attributes',
+                      type: [
+                        'array',
+                        {
+                          countType: 'varint',
+                          type: 'EnvironmentAttributeData',
+                        },
+                      ],
+                    },
+                  ],
+                ],
+                remove_environment: [
+                  'container',
+                  [
+                    {
+                      name: 'layer_name',
+                      type: 'string',
+                    },
+                    {
+                      name: 'dimension_id',
+                      type: 'zigzag32',
+                    },
+                    {
+                      name: 'remove_attribute_names',
+                      type: [
+                        'array',
+                        {
+                          countType: 'varint',
+                          type: 'string',
+                        },
+                      ],
+                    },
+                  ],
+                ],
+              },
             },
           ],
         },
