@@ -6,7 +6,7 @@ import LoginVerify from './handshake/loginVerify'
 import { Connection } from './nethernet/connection'
 import { KeyExchange } from './handshake/keyExchange'
 import { serialize, isDebug } from './datatypes/util'
-import { CURRENT_VERSION, Options } from './options'
+import { Options } from './options'
 import { CompressionAlgorithm, Framer } from './transforms/framer'
 
 const debug = require('debug')('bedrock-portal-nethernet')
@@ -168,7 +168,7 @@ export class Player extends TypedEmitter<PlayerEvents> {
     //     return false
     //   }
     // }
-    if (clientVersion < Number(CURRENT_VERSION)) {
+    if (clientVersion < this.server.options.protocolVersion) {
       this.sendDisconnectStatus('failed_client') // client too old
       return false
     }

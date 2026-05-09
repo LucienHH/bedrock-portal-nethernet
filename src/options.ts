@@ -2,6 +2,7 @@ import { CompressionAlgorithm } from './transforms/framer'
 
 export type Options = {
   version: string
+  signalingMode: 'rpc' | 'legacy'
   autoInitPlayer: boolean
   offline: boolean
   connectTimeout: number
@@ -12,11 +13,12 @@ export type Options = {
 }
 
 // Currently supported verson. Note, clients with newer versions can still connect as long as data is in minecraft-data
-export const CURRENT_VERSION = '1.26.10'
+export const CURRENT_VERSION = '1.26.20'
 
-export const defaultOptions = {
+export const defaultOptions: Options = {
   // https://minecraft.wiki/w/Protocol_version#Bedrock_Edition_2
   version: CURRENT_VERSION,
+  signalingMode: 'rpc',
   // client: If we should send SetPlayerInitialized to the server after getting play_status spawn.
   // if this is disabled, no 'spawn' event will be emitted, you should manually set
   // client.status to ClientStatus.Initialized after sending the init packet.
@@ -32,5 +34,5 @@ export const defaultOptions = {
   // server: If true, only compress if a payload is larger than compressionThreshold
   compressionThreshold: 512,
   // server and client: The protocol version to use
-  protocolVersion: 944,
+  protocolVersion: 975,
 }
