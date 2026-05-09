@@ -6,6 +6,14 @@ import { SignalStructure, SignalType } from '../signaling/struct'
 
 const debugFn = require('debug')('bedrock-portal-nethernet')
 
+type PendingCandidate = {
+  signal: SignalStructure
+  attempts: number
+}
+
+const MAX_PENDING_CANDIDATE_ATTEMPTS = 50
+const PENDING_CANDIDATE_RETRY_MS = 100
+
 const getRandomUint64 = () => {
   const high = Math.floor(Math.random() * 0xFFFFFFFF)
   const low = Math.floor(Math.random() * 0xFFFFFFFF)
@@ -23,6 +31,12 @@ export class Server {
 
   connections: Map<bigint, Connection>
 
+  pendingCandidates: Map<bigint, PendingCandidate[]>
+
+  remoteDescriptionReady: Set<bigint>
+
+  pendingCandidateTimers: Map<bigint, NodeJS.Timeout>
+
   onOpenConnection: (conn: Connection) => void
 
   onCloseConnection: (id: bigint, reason: string) => void
@@ -39,6 +53,12 @@ export class Server {
 
     this.connections = new Map()
 
+    this.pendingCandidates = new Map()
+
+    this.remoteDescriptionReady = new Set()
+
+    this.pendingCandidateTimers = new Map()
+
     this.onOpenConnection = () => { }
 
     this.onCloseConnection = () => { }
@@ -50,13 +70,80 @@ export class Server {
   async handleCandidate(signal: SignalStructure) {
     const conn = this.connections.get(signal.connectionId)
 
-    if (conn) {
-      conn.rtcConnection.addRemoteCandidate(signal.data, '0')
-    }
-    else {
-      debugFn('Received candidate for unknown connection', signal)
+    if (!conn || !this.remoteDescriptionReady.has(signal.connectionId)) {
+      this.queueCandidate(signal)
+      return
     }
 
+    try {
+      conn.rtcConnection.addRemoteCandidate(signal.data, '0')
+    }
+    catch (error) {
+      this.queueCandidate(signal, formatCandidateError(error))
+    }
+  }
+
+  queueCandidate(signal: SignalStructure, reason = 'connection is not ready') {
+    const candidates = this.pendingCandidates.get(signal.connectionId) || []
+    candidates.push({ signal, attempts: 0 })
+    this.pendingCandidates.set(signal.connectionId, candidates)
+
+    debugFn('Queued ICE candidate', signal.connectionId, reason)
+    this.schedulePendingCandidateFlush(signal.connectionId)
+  }
+
+  schedulePendingCandidateFlush(connectionId: bigint) {
+    if (this.pendingCandidateTimers.has(connectionId)) return
+
+    const timer = setTimeout(() => {
+      this.pendingCandidateTimers.delete(connectionId)
+      this.flushPendingCandidates(connectionId)
+    }, PENDING_CANDIDATE_RETRY_MS)
+    timer.unref?.()
+
+    this.pendingCandidateTimers.set(connectionId, timer)
+  }
+
+  flushPendingCandidates(connectionId: bigint) {
+    const candidates = this.pendingCandidates.get(connectionId)
+    if (!candidates?.length) return
+
+    const conn = this.connections.get(connectionId)
+    const remaining: PendingCandidate[] = []
+
+    for (const candidate of candidates) {
+      if (!conn || !this.remoteDescriptionReady.has(connectionId)) {
+        this.requeueCandidate(candidate, remaining, 'connection is not ready')
+        continue
+      }
+
+      try {
+        conn.rtcConnection.addRemoteCandidate(candidate.signal.data, '0')
+      }
+      catch (error) {
+        this.requeueCandidate(candidate, remaining, formatCandidateError(error))
+      }
+    }
+
+    if (remaining.length) {
+      this.pendingCandidates.set(connectionId, remaining)
+      this.schedulePendingCandidateFlush(connectionId)
+    }
+    else {
+      this.pendingCandidates.delete(connectionId)
+    }
+  }
+
+  requeueCandidate(candidate: PendingCandidate, remaining: PendingCandidate[], reason: string) {
+    if (candidate.attempts >= MAX_PENDING_CANDIDATE_ATTEMPTS) {
+      debugFn('Dropping ICE candidate after retries', candidate.signal.connectionId, reason)
+      return
+    }
+
+    remaining.push({
+      signal: candidate.signal,
+      attempts: candidate.attempts + 1,
+    })
   }
 
   async handleOffer(signal: SignalStructure) {
@@ -84,10 +171,16 @@ export class Server {
 
     rtcConnection.onIceStateChange(state => {
       if (state === 'connected') this.onOpenConnection(connection)
-      if (state === 'disconnected') this.onCloseConnection(signal.connectionId, 'disconnected')
+      if (state === 'disconnected') {
+        this.remoteDescriptionReady.delete(signal.connectionId)
+        this.pendingCandidates.delete(signal.connectionId)
+        this.onCloseConnection(signal.connectionId, 'disconnected')
+      }
     })
 
     rtcConnection.setRemoteDescription(signal.data, 'offer')
+    this.remoteDescriptionReady.add(signal.connectionId)
+    this.flushPendingCandidates(signal.connectionId)
 
     const answer = rtcConnection.localDescription()
 
@@ -109,10 +202,14 @@ export class Server {
 
       switch (signal.type) {
         case SignalType.ConnectRequest:
-          this.handleOffer(signal)
+          this.handleOffer(signal).catch(error => {
+            debugFn('Failed to handle connect offer', signal, error)
+          })
           break
         case SignalType.CandidateAdd:
-          this.handleCandidate(signal)
+          this.handleCandidate(signal).catch(error => {
+            debugFn('Failed to handle ICE candidate', signal, error)
+          })
           break
         default:
           debugFn('Received signal for unknown type', signal)
@@ -122,9 +219,20 @@ export class Server {
   }
 
   close() {
+    for (const timer of this.pendingCandidateTimers.values()) {
+      clearTimeout(timer)
+    }
+    this.pendingCandidateTimers.clear()
+    this.pendingCandidates.clear()
+    this.remoteDescriptionReady.clear()
+
     for (const conn of this.connections.values()) {
       conn.close()
     }
   }
 
+}
+
+function formatCandidateError(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
 }

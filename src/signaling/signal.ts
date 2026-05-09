@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto'
 import type { Authflow } from 'prismarine-auth'
 
 import debugFn from 'debug'
@@ -5,7 +6,16 @@ import { stringify } from 'json-bigint'
 import { once, EventEmitter } from 'events'
 import { Data, ErrorEvent, WebSocket } from 'ws'
 
-import { SignalStructure } from './struct'
+import { NetworkId, SignalStructure } from './struct'
+
+type TurnServer = { hostname: string, port: number, username?: string, password?: string }
+type JsonObject = Record<string, unknown>
+
+type PendingRequest = {
+  resolve: (value: unknown) => void
+  reject: (reason?: unknown) => void
+  timer: NodeJS.Timeout
+}
 
 const MessageType = {
   RequestPing: 0,
@@ -13,15 +23,29 @@ const MessageType = {
   Credentials: 2,
 }
 
+const Rpc = {
+  TurnAuth: 'Signaling_TurnAuth_v1_0',
+  SendMessage: 'Signaling_SendClientMessage_v1_0',
+  ReceiveMessage: 'Signaling_ReceiveMessage_v1_0',
+  Ping: 'System_Ping_v1_0',
+  Pong: 'System_Pong_v1_0',
+  WebRtc: 'Signaling_WebRtc_v1_0',
+  Delivery: 'Signaling_DeliveryNotification_V1_0',
+}
+
+const RPC_SIGNAL_URL = 'wss://signal.franchise.minecraft-services.net/ws/v1.0/messaging/connect'
+const LEGACY_SIGNAL_URL = 'wss://signal.franchise.minecraft-services.net/ws/v1.0/signaling'
+const SIGNALING_USER_AGENT = 'libHttpClient/1.0.0.0'
+
 const debug = debugFn('bedrock-portal-nethernet')
 
 export class Signal extends EventEmitter {
 
   public ws: WebSocket | null
 
-  public networkId: bigint
+  public networkId: NetworkId
 
-  public credentials: { hostname: string, port: number, username: string, password: string }[] | null
+  public credentials: TurnServer[] | null
 
   private authflow: Authflow
 
@@ -31,7 +55,11 @@ export class Signal extends EventEmitter {
 
   private retryCount: number
 
-  constructor(authflow: Authflow, networkId: bigint, version: string) {
+  private pendingRequests: Map<string, PendingRequest>
+
+  private mode: 'rpc' | 'legacy'
+
+  constructor(authflow: Authflow, networkId: NetworkId, version: string, signalingMode: 'rpc' | 'legacy' = 'rpc') {
     super()
 
     this.authflow = authflow
@@ -48,6 +76,10 @@ export class Signal extends EventEmitter {
 
     this.retryCount = 0
 
+    this.pendingRequests = new Map()
+
+    this.mode = signalingMode
+
   }
 
   async connect() {
@@ -61,31 +93,22 @@ export class Signal extends EventEmitter {
 
     debug('Disconnecting from Signal')
 
-    if (this.pingInterval) {
-      clearInterval(this.pingInterval)
-      this.pingInterval = null
-    }
+    this.clearPing()
+    this.rejectPending(new Error('Signal disconnected'))
 
     if (this.ws) {
 
       this.ws.onmessage = null
       this.ws.onclose = null
 
-      const shouldClose = this.ws.readyState === WebSocket.OPEN
+      const shouldClose = this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING
 
       if (shouldClose) {
 
-        let outerResolve: any
-
-        const promise = new Promise((resolve) => {
-          outerResolve = resolve
+        await new Promise((resolve) => {
+          this.ws!.onclose = resolve
+          this.ws!.close(1000, 'Normal Closure')
         })
-
-        this.ws.onclose = outerResolve
-
-        this.ws.close(1000, 'Normal Closure')
-
-        await promise
 
       }
 
@@ -105,25 +128,30 @@ export class Signal extends EventEmitter {
 
     debug('Fetched XBL Token', xbl)
 
-    const address = `wss://signal.franchise.minecraft-services.net/ws/v1.0/signaling/${this.networkId}`
+    this.mode = this.mode === 'legacy' ? 'legacy' : 'rpc'
+    const address = this.mode === 'legacy' ? `${LEGACY_SIGNAL_URL}/${this.networkId}` : RPC_SIGNAL_URL
 
     debug('Connecting to Signal', address)
 
-    const ws = new WebSocket(address, {
-      headers: { Authorization: xbl.mcToken },
-    })
-
-    this.pingInterval = setInterval(() => {
-      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send(JSON.stringify({ Type: MessageType.RequestPing }))
+    const headers = this.mode === 'legacy'
+      ? { Authorization: xbl.mcToken }
+      : {
+        'Authorization': xbl.mcToken,
+        'User-Agent': SIGNALING_USER_AGENT,
+        'session-id': randomUUID(),
+        'request-id': randomUUID(),
       }
-    }, 5000)
+
+    const ws = new WebSocket(address, { headers })
 
     ws.onopen = () => {
       this.onOpen()
+      if (this.mode === 'legacy') this.startLegacyPing()
+      else this.onRpcOpen()
     }
 
     ws.onclose = (event) => {
+      this.handleCloseCleanup(event.code, event.reason)
       this.onClose(event.code, event.reason)
     }
 
@@ -164,18 +192,89 @@ export class Signal extends EventEmitter {
     }
   }
 
+  handleCloseCleanup(code: number, reason: string) {
+    this.clearPing()
+    this.rejectPending(new Error(`Signal closed with code ${code}: ${reason || 'none'}`))
+  }
+
+  clearPing() {
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval)
+      this.pingInterval = null
+    }
+  }
+
+  rejectPending(error: Error) {
+    for (const pending of this.pendingRequests.values()) {
+      clearTimeout(pending.timer)
+      pending.reject(error)
+    }
+    this.pendingRequests.clear()
+  }
+
+  startLegacyPing() {
+    this.clearPing()
+    this.pingInterval = setInterval(() => {
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({ Type: MessageType.RequestPing }))
+      }
+    }, 5000)
+    this.pingInterval.unref?.()
+  }
+
+  onRpcOpen() {
+    this.clearPing()
+    this.pingInterval = setInterval(() => {
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.sendJsonRpcRequest(Rpc.Ping, {}).catch(error => {
+          debug('RPC ping failed', error)
+        })
+      }
+    }, 50000)
+    this.pingInterval.unref?.()
+
+    this.sendJsonRpcRequest(Rpc.TurnAuth, {})
+      .then((response) => {
+        this.credentials = parseTurnServers(response)
+        this.emit('credentials', this.credentials)
+      })
+      .catch((error) => {
+        debug('Failed to fetch JSON-RPC TURN credentials', error)
+        if (this.listenerCount('error') > 0) this.emit('error', error)
+      })
+  }
+
   onMessage(res: Data) {
 
+    if (Buffer.isBuffer(res)) res = res.toString('utf8')
     if (!(typeof res === 'string')) return debug('Recieved non-string message', res)
 
-    const message = JSON.parse(res)
+    let message: unknown
+    try {
+      message = JSON.parse(res)
+    }
+    catch (error) {
+      debug('Failed to parse signaling message', res, error)
+      return
+    }
 
     debug('Recieved message', message)
 
+    if (isRecord(message) && 'Type' in message) {
+      return this.onLegacyMessage(message)
+    }
+
+    if (isRecord(message)) {
+      return this.onRpcMessage(message)
+    }
+  }
+
+  onLegacyMessage(message: JsonObject) {
     switch (message.Type) {
       case MessageType.Credentials: {
 
-        if (message.From != 'Server') {
+        const from = getFirstString(message, ['From'])
+        if (from != 'Server') {
           debug('received credentials from non-Server', 'message', message)
           return
         }
@@ -187,7 +286,11 @@ export class Signal extends EventEmitter {
         break
       }
       case MessageType.Signal: {
-        const signal = SignalStructure.fromString(message.Message, BigInt(message.From))
+        const from = getFirstString(message, ['From'])
+        const payload = getFirstString(message, ['Message'])
+        if (!from || !payload) return
+
+        const signal = SignalStructure.fromString(payload, parseNetworkId(from))
 
         this.emit('signal', signal)
         break
@@ -196,11 +299,177 @@ export class Signal extends EventEmitter {
         debug('Signal Pinged')
       }
     }
+  }
 
+  onRpcMessage(message: JsonObject) {
+    if (Object.prototype.hasOwnProperty.call(message, 'result') || (message.error && Object.prototype.hasOwnProperty.call(message, 'id'))) {
+      this.handleRpcResponse(message)
+    }
+    else if (message.method) {
+      this.handleRpcRequest(message)
+    }
+  }
+
+  handleRpcResponse(message: JsonObject) {
+    if (message.id === undefined || message.id === null) return
+
+    const id = String(message.id)
+    const pending = this.pendingRequests.get(id)
+    if (!pending) return
+
+    clearTimeout(pending.timer)
+    this.pendingRequests.delete(id)
+
+    if (message.error) {
+      const rpcError = isRecord(message.error) ? message.error : null
+      const errorMessage = typeof rpcError?.message === 'string' ? rpcError.message : JSON.stringify(message.error)
+      pending.reject(new Error(errorMessage))
+      return
+    }
+
+    pending.resolve(message.result || {})
+  }
+
+  handleRpcRequest(message: JsonObject) {
+    const id = message.id
+    const hasResponseId = typeof id === 'string' || typeof id === 'number'
+
+    switch (typeof message.method === 'string' ? message.method : undefined) {
+      case Rpc.ReceiveMessage: {
+        if (hasResponseId) this.sendJsonRpcResult(id, null)
+
+        const params = Array.isArray(message.params) ? message.params : []
+        for (const item of params) {
+          this.processIncomingRpcMessage(item)
+        }
+        break
+      }
+      case Rpc.Ping:
+      case Rpc.Pong: {
+        if (hasResponseId) this.sendJsonRpcResult(id, null)
+        break
+      }
+      default:
+        debug('Unhandled RPC signaling method', message.method, message)
+    }
+  }
+
+  processIncomingRpcMessage(message: JsonObject) {
+    const from = getFirstString(message, ['From', 'from'])
+    const rawInner = getFirstString(message, ['Message', 'message'])
+    const messageId = getFirstString(message, ['Id', 'id']) || randomUUID()
+
+    if (!from || !rawInner) {
+      debug('Ignoring malformed RPC signal message', message)
+      return
+    }
+
+    this.sendRpcDeliveryAck(from, messageId).catch(error => {
+      debug('Failed to send RPC delivery acknowledgement', error)
+    })
+
+    let inner: unknown
+    try {
+      inner = JSON.parse(rawInner)
+    }
+    catch (error) {
+      debug('Failed to parse inner RPC signaling message', rawInner, error)
+      return
+    }
+
+    if (!isRecord(inner) || inner.method !== Rpc.WebRtc) {
+      debug('Ignoring non-WebRTC RPC inner message', isRecord(inner) ? inner.method : undefined)
+      return
+    }
+
+    const params = isRecord(inner.params) ? inner.params : null
+    const payload = params?.message
+    if (typeof payload !== 'string') {
+      debug('Ignoring RPC WebRTC message without string payload', inner)
+      return
+    }
+
+    const signal = SignalStructure.fromString(payload, parseNetworkId(from))
+    signal.rpcFrom = from
+    this.emit('signal', signal)
+  }
+
+  sendRpcDeliveryAck(target: string, messageId: string) {
+    const innerMessage = {
+      params: { messageId },
+      jsonrpc: '2.0',
+      method: Rpc.Delivery,
+    }
+
+    return this.sendJsonRpcRequest(Rpc.SendMessage, {
+      toPlayerId: String(target),
+      messageId: randomUUID(),
+      message: JSON.stringify(innerMessage),
+    })
+  }
+
+  sendJsonRpcRequest(method: string, params: unknown) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      return Promise.reject(new Error('WebSocket not connected'))
+    }
+
+    const id = randomUUID()
+    const request = {
+      params,
+      jsonrpc: '2.0',
+      method,
+      id,
+    }
+
+    const promise = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pendingRequests.delete(id)
+        reject(new Error(`Timed out waiting for RPC response to ${method}`))
+      }, 30000)
+      timer.unref?.()
+
+      this.pendingRequests.set(id, { resolve, reject, timer })
+    })
+
+    this.ws.send(JSON.stringify(request))
+
+    return promise
+  }
+
+  sendJsonRpcResult(id: string | number, result: unknown) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return
+
+    this.ws.send(JSON.stringify({
+      id,
+      result,
+      jsonrpc: '2.0',
+    }))
   }
 
   write(signal: SignalStructure) {
     if (!this.ws) throw new Error('WebSocket not connected')
+
+    if (this.mode === 'rpc') {
+      const target = signal.rpcFrom || stringifyNetworkId(signal.networkId)
+      const innerMessage = {
+        params: {
+          netherNetId: stringifyNetworkId(this.networkId),
+          message: signal.toString(),
+        },
+        jsonrpc: '2.0',
+        method: Rpc.WebRtc,
+      }
+
+      this.sendJsonRpcRequest(Rpc.SendMessage, {
+        toPlayerId: String(target),
+        messageId: randomUUID(),
+        message: JSON.stringify(innerMessage),
+      }).catch(error => {
+        debug('Failed to send JSON-RPC signal', target, error)
+      })
+      return
+    }
+
     const message = stringify({ Type: MessageType.Signal, To: signal.networkId, Message: signal.toString() })
 
     debug('Sending Signal', message)
@@ -210,24 +479,65 @@ export class Signal extends EventEmitter {
 
 }
 
-function parseTurnServers(dataString: string) {
-  const servers: { hostname: string, port: number, username: string, password: string }[] = []
+function parseNetworkId(value: unknown): NetworkId {
+  if (typeof value === 'bigint') return value
 
-  const data = JSON.parse(dataString)
+  const stringValue = String(value)
+  if (/^[0-9]+$/.test(stringValue)) {
+    try {
+      return BigInt(stringValue)
+    }
+    catch (_error) {
+      return stringValue
+    }
+  }
 
-  if (!data.TurnAuthServers) return servers
+  return stringValue
+}
 
-  for (const server of data.TurnAuthServers) {
-    if (!server.Urls) continue
+function stringifyNetworkId(value: NetworkId) {
+  return typeof value === 'bigint' ? value.toString() : String(value)
+}
 
-    for (const url of server.Urls) {
-      const match = url.match(/(stun|turn):([^:]+):(\d+)/)
+function isRecord(value: unknown): value is JsonObject {
+  return Boolean(value) && typeof value === 'object'
+}
+
+function getFirstString(source: unknown, keys: string[]) {
+  if (!isRecord(source)) return undefined
+
+  for (const key of keys) {
+    const value = source[key]
+    if (value !== undefined && value !== null) return String(value)
+  }
+
+  return undefined
+}
+
+function parseTurnServers(dataString: string | unknown) {
+  const servers: TurnServer[] = []
+
+  const data = typeof dataString === 'string' ? JSON.parse(dataString) : dataString
+
+  if (!isRecord(data)) return servers
+
+  const turnServers = data.TurnAuthServers || data.turnAuthServers
+  if (!Array.isArray(turnServers)) return servers
+
+  for (const server of turnServers) {
+    if (!isRecord(server)) continue
+
+    const urls = server.Urls || server.urls
+    if (!Array.isArray(urls)) continue
+
+    for (const url of urls) {
+      const match = String(url).match(/^(stun|turn):(?:\[([^\]]+)\]|([^:/?]+)):(\d+)/)
       if (match) {
         servers.push({
-          hostname: match[2],
-          port: parseInt(match[3], 10),
-          username: server.Username || undefined,
-          password: server.Password || undefined,
+          hostname: match[2] || match[3],
+          port: parseInt(match[4], 10),
+          username: getFirstString(server, ['Username', 'username']),
+          password: getFirstString(server, ['Password', 'password', 'Credential', 'credential']),
         })
       }
     }
