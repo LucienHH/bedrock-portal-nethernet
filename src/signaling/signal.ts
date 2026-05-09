@@ -59,6 +59,10 @@ export class Signal extends EventEmitter {
 
   private mode: 'rpc' | 'legacy'
 
+  private reconnectTimer: NodeJS.Timeout | null
+
+  private destroying: boolean
+
   constructor(authflow: Authflow, networkId: NetworkId, version: string, signalingMode: 'rpc' | 'legacy' = 'rpc') {
     super()
 
@@ -80,6 +84,10 @@ export class Signal extends EventEmitter {
 
     this.mode = signalingMode
 
+    this.reconnectTimer = null
+
+    this.destroying = false
+
   }
 
   async connect() {
@@ -92,6 +100,13 @@ export class Signal extends EventEmitter {
   async destroy(resume = false) {
 
     debug('Disconnecting from Signal')
+
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
+    }
+
+    this.destroying = !resume
 
     this.clearPing()
     this.rejectPending(new Error('Signal disconnected'))
@@ -113,10 +128,17 @@ export class Signal extends EventEmitter {
       }
 
       this.ws.onerror = null
+
+      this.ws = null
     }
 
     if (resume) {
-      return this.init()
+      try {
+        return await this.init()
+      }
+      finally {
+        this.destroying = false
+      }
     }
 
 
@@ -124,7 +146,11 @@ export class Signal extends EventEmitter {
 
   async init() {
 
-    const xbl = await this.authflow.getMinecraftBedrockServicesToken({ version: this.version })
+    const tokenOptions = {
+      version: this.version,
+      verison: this.version,
+    }
+    const xbl = await this.authflow.getMinecraftBedrockServicesToken(tokenOptions)
 
     debug('Fetched XBL Token', xbl)
 
@@ -167,6 +193,7 @@ export class Signal extends EventEmitter {
   }
 
   onOpen() {
+    this.retryCount = 0
     debug('Signal Connected to Signal')
   }
 
@@ -177,19 +204,29 @@ export class Signal extends EventEmitter {
   onClose(code: number, reason: string) {
     debug(`Signal Disconnected with code ${code} and reason ${reason}`)
 
-    if (code === 1006) {
-      debug('Signal Connection Closed Unexpectedly')
-
-      if (this.retryCount < 5) {
-        this.retryCount++
-        this.destroy(true)
-      }
-      else {
-        this.destroy()
-        throw new Error('Signal Connection Closed Unexpectedly')
-      }
-
+    if (this.destroying) {
+      debug('Signal close was intentional')
+      return
     }
+
+    if (this.reconnectTimer) {
+      debug('Signal reconnect is already scheduled')
+      return
+    }
+
+    const retryCount = this.retryCount || 0
+    const delayMs = Math.min(30000, Math.round(1000 * Math.pow(1.8, retryCount)))
+    this.retryCount = retryCount + 1
+
+    debug(`Signal connection closed unexpectedly; reconnecting in ${delayMs}ms`)
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null
+      this.destroy(true).catch((error) => {
+        debug('Signal reconnect failed', error)
+        this.onClose(0, 'reconnect-failed')
+      })
+    }, delayMs)
+    this.reconnectTimer.unref?.()
   }
 
   handleCloseCleanup(code: number, reason: string) {
@@ -447,7 +484,7 @@ export class Signal extends EventEmitter {
   }
 
   write(signal: SignalStructure) {
-    if (!this.ws) throw new Error('WebSocket not connected')
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) throw new Error('WebSocket not connected')
 
     if (this.mode === 'rpc') {
       const target = signal.rpcFrom || stringifyNetworkId(signal.networkId)
