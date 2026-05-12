@@ -1,5 +1,3 @@
-export type NetworkId = bigint | string
-
 export const SignalType = {
   ConnectRequest: 'CONNECTREQUEST',
   ConnectResponse: 'CONNECTRESPONSE',
@@ -15,11 +13,9 @@ export class SignalStructure {
 
   data: string
 
-  networkId: NetworkId
+  networkId: bigint
 
-  rpcFrom?: string
-
-  constructor(type: string, connectionId: bigint, data: string, networkId: NetworkId) {
+  constructor(type: string, connectionId: bigint, data: string, networkId: bigint) {
     this.type = type
     this.connectionId = connectionId
     this.data = data
@@ -30,7 +26,7 @@ export class SignalStructure {
     return `${this.type} ${this.connectionId} ${this.data}`
   }
 
-  static fromString(message: string, networkId: NetworkId) {
+  static fromString(message: string, networkId: bigint) {
     const [type, connectionId, ...data] = message.split(' ')
 
     return new this(type, BigInt(connectionId), data.join(' '), networkId)
