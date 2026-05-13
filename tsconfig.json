@@ -1,8 +1,9 @@
 {
 	"compilerOptions": {
 		"target": "ESNext",
-    "moduleResolution": "Node",
-    "module": "CommonJS",
+		"moduleResolution": "bundler",
+		"module": "CommonJS",
+		"rootDir": "./src",
 		"outDir": "./dist",
 		"strict": true,
 		"sourceMap": false,
@@ -17,6 +18,11 @@
 		"declaration": true,
 		"allowJs": true
 	},
-	"include": ["./src/**/*", "src/types"],
-	"exclude": ["node_modules"]
+	"include": [
+		"./src/**/*",
+		"src/types"
+	],
+	"exclude": [
+		"node_modules"
+	]
 }
