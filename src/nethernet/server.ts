@@ -73,7 +73,7 @@ export class Server {
 
     rtcConnection.onLocalCandidate(candidate => {
       this.signaling.write(
-        new SignalStructure(SignalType.CandidateAdd, signal.connectionId, candidate, signal.networkId)
+        new SignalStructure(SignalType.CandidateAdd, signal.connectionId, candidate, signal.networkId, signal.pmsgId)
       )
     })
 
@@ -91,12 +91,12 @@ export class Server {
 
     const answer = rtcConnection.localDescription()
 
-    if(!answer) {
+    if (!answer) {
       throw new Error('No answer')
     }
 
     this.signaling.write(
-      new SignalStructure(SignalType.ConnectResponse, signal.connectionId, answer.sdp, signal.networkId)
+      new SignalStructure(SignalType.ConnectResponse, signal.connectionId, answer.sdp, signal.networkId, signal.pmsgId)
     )
 
   }

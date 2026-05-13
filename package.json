@@ -15,6 +15,7 @@
   "dependencies": {
     "debug": "^4.3.4",
     "json-bigint": "^1.0.0",
+    "json-rpc-2.0": "^1.7.1",
     "jsonwebtoken": "^9.0.0",
     "node-datachannel": "^0.25.0",
     "prismarine-auth": "github:LucienHH/prismarine-auth#playfab",
