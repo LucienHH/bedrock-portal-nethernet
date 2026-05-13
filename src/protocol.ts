@@ -520,6 +520,81 @@ export default {
         },
       ],
     ],
+    ItemNew: [
+      'container',
+      [
+        {
+          name: 'network_id',
+          type: 'li16',
+        },
+        {
+          name: 'count',
+          type: 'lu16',
+        },
+        {
+          name: 'metadata',
+          type: 'varint',
+        },
+        {
+          name: 'has_stack_id',
+          type: 'bool',
+        },
+        {
+          name: 'stack_id',
+          type: [
+            'switch',
+            {
+              compareTo: 'has_stack_id',
+              fields: {
+                true: [
+                  'container',
+                  [
+                    {
+                      name: 'empty',
+                      type: 'varint',
+                    },
+                    {
+                      name: 'id',
+                      type: 'zigzag32',
+                    },
+                  ],
+                ],
+              },
+              default: 'void',
+            },
+          ],
+        },
+        {
+          name: 'block_runtime_id',
+          type: 'varint',
+        },
+        {
+          name: 'extra',
+          type: [
+            'switch',
+            {
+              compareTo: 'network_id',
+              fields: {
+                '/ShieldItemID': [
+                  'encapsulated',
+                  {
+                    lengthType: 'varint',
+                    type: 'ItemExtraDataWithBlockingTick',
+                  },
+                ],
+              },
+              default: [
+                'encapsulated',
+                {
+                  lengthType: 'varint',
+                  type: 'ItemExtraDataWithoutBlockingTick',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    ],
     Item: [
       'container',
       [
@@ -881,6 +956,8 @@ export default {
                     139: 'arrow_shooter_id',
                     140: 'firework_direction',
                     141: 'firework_shooter_id',
+                    142: 'reserved_139',
+                    143: 'nameplate_render_distance_max',
                   },
                 },
               ],
@@ -1083,6 +1160,9 @@ export default {
           'body_rotation_always_follows_head',
           'can_use_vertical_movement_action',
           'rotation_locked_to_vehicle',
+          'uses_legacy_friction',
+          'uses_uniform_air_drag',
+          'nameplate_depth_tested',
         ],
       },
     ],
@@ -2608,7 +2688,7 @@ export default {
       [
         {
           name: 'cost',
-          type: 'varint',
+          type: 'u8',
         },
         {
           name: 'slot_flags',
@@ -4398,6 +4478,8 @@ export default {
           596: 'ItemNetheriteSpearUse',
           597: 'PauseGrowth',
           598: 'ResetGrowth',
+          599: 'PushedByPlayer',
+          600: 'Bounce',
         },
       },
     ],
@@ -5202,12 +5284,12 @@ export default {
           type: 'string',
         },
         {
-          name: 'unknown_uuid_1',
+          name: 'target_id',
           type: 'uuid',
         },
         {
-          name: 'unknown_uuid_2',
-          type: 'uuid',
+          name: 'scenario_id',
+          type: 'string',
         },
         {
           name: 'server_id',
@@ -5414,6 +5496,10 @@ export default {
           130: 'editor_mismatch_editor_to_vanilla',
           131: 'editor_mismatch_vanilla_to_editor',
           132: 'deny_listed',
+          133: 'nonce_missing',
+          134: 'nonce_not_found',
+          135: 'nonce_expired',
+          136: 'nonce_not_valid',
         },
       },
     ],
@@ -6245,6 +6331,9 @@ export default {
           46: 'flash_illuminance',
           47: 'ambient_color',
           48: 'ambient_illuminance',
+          49: 'emissive_desaturation',
+          50: 'sky_intensity',
+          51: 'orbital_offset_degrees',
         },
       },
     ],
@@ -6473,10 +6562,17 @@ export default {
           ],
         },
         {
-          name: 'texture_id',
+          name: 'texture_path',
           type: [
             'option',
-            'lu32',
+            'string',
+          ],
+        },
+        {
+          name: 'icon_size',
+          type: [
+            'option',
+            'vec2f',
           ],
         },
         {
@@ -6819,6 +6915,267 @@ export default {
         },
       ],
     ],
+    EntityDiagnosticTimingInfo: [
+      'container',
+      [
+        {
+          name: 'display_name',
+          type: 'string',
+        },
+        {
+          name: 'entity',
+          type: 'string',
+        },
+        {
+          name: 'duration_nanos',
+          type: 'lu64',
+        },
+        {
+          name: 'percent_of_total',
+          type: 'u8',
+        },
+      ],
+    ],
+    SystemDiagnosticTimingInfo: [
+      'container',
+      [
+        {
+          name: 'display_name',
+          type: 'string',
+        },
+        {
+          name: 'system_index',
+          type: 'lu64',
+        },
+        {
+          name: 'duration_nanos',
+          type: 'lu64',
+        },
+        {
+          name: 'percent_of_total',
+          type: 'u8',
+        },
+      ],
+    ],
+    PrimitiveShape: [
+      'container',
+      [
+        {
+          name: 'network_id',
+          type: 'varint64',
+        },
+        {
+          name: 'type',
+          type: [
+            'option',
+            [
+              'mapper',
+              {
+                type: 'u8',
+                mappings: {
+                  0: 'line',
+                  1: 'box',
+                  2: 'sphere',
+                  3: 'circle',
+                  4: 'text',
+                  5: 'arrow',
+                },
+              },
+            ],
+          ],
+        },
+        {
+          name: 'location',
+          type: [
+            'option',
+            'vec3f',
+          ],
+        },
+        {
+          name: 'scale',
+          type: [
+            'option',
+            'lf32',
+          ],
+        },
+        {
+          name: 'rotation',
+          type: [
+            'option',
+            'vec3f',
+          ],
+        },
+        {
+          name: 'total_time_left',
+          type: [
+            'option',
+            'lf32',
+          ],
+        },
+        {
+          name: 'max_render_distance',
+          type: [
+            'option',
+            'lf32',
+          ],
+        },
+        {
+          name: 'color',
+          type: [
+            'option',
+            'li32',
+          ],
+        },
+        {
+          name: 'dimension_id',
+          type: [
+            'option',
+            'zigzag32',
+          ],
+        },
+        {
+          name: 'attached_to_entity_id',
+          type: [
+            'option',
+            'zigzag64',
+          ],
+        },
+        {
+          name: 'extra_shape_data',
+          type: [
+            'switch',
+            {
+              compareTo: 'type',
+              fields: {
+                line: 'ShapeLine',
+                box: 'ShapeBox',
+                sphere: 'ShapeSphere',
+                circle: 'ShapeCircle',
+                text: 'ShapeText',
+                arrow: 'ShapeArrow',
+              },
+              default: 'void',
+            },
+          ],
+        },
+      ],
+    ],
+    ShapeLine: [
+      'container',
+      [
+        {
+          name: 'end_location',
+          type: 'vec3f',
+        },
+      ],
+    ],
+    ShapeBox: [
+      'container',
+      [
+        {
+          name: 'box_bound',
+          type: 'vec3f',
+        },
+      ],
+    ],
+    ShapeSphere: [
+      'container',
+      [
+        {
+          name: 'segment_count',
+          type: [
+            'option',
+            'u8',
+          ],
+        },
+      ],
+    ],
+    ShapeCircle: [
+      'container',
+      [
+        {
+          name: 'segment_count',
+          type: [
+            'option',
+            'u8',
+          ],
+        },
+      ],
+    ],
+    ShapeText: [
+      'container',
+      [
+        {
+          name: 'text',
+          type: 'string',
+        },
+        {
+          name: 'use_rotation',
+          type: [
+            'option',
+            'bool',
+          ],
+        },
+        {
+          name: 'background_color',
+          type: [
+            'option',
+            'li32',
+          ],
+        },
+        {
+          name: 'depth_test',
+          type: [
+            'option',
+            'bool',
+          ],
+        },
+        {
+          name: 'show_backface',
+          type: [
+            'option',
+            'bool',
+          ],
+        },
+        {
+          name: 'show_backface_text',
+          type: [
+            'option',
+            'bool',
+          ],
+        },
+      ],
+    ],
+    ShapeArrow: [
+      'container',
+      [
+        {
+          name: 'end_location',
+          type: 'vec3f',
+        },
+        {
+          name: 'arrow_head_length',
+          type: 'lf32',
+        },
+        {
+          name: 'arrow_head_radius',
+          type: 'lf32',
+        },
+      ],
+    ],
+    PartyInfo: [
+      'container',
+      [
+        {
+          name: 'party_id',
+          type: 'string',
+        },
+        {
+          name: 'party_leader',
+          type: 'bool',
+        },
+      ],
+    ],
     mcpe_packet: [
       'container',
       [
@@ -6987,7 +7344,7 @@ export default {
                 161: 'correct_player_move_prediction',
                 162: 'item_registry',
                 163: 'filter_text_packet',
-                164: 'debug_renderer',
+                164: 'primitive_shapes',
                 165: 'sync_entity_property',
                 166: 'add_volume_entity',
                 167: 'remove_volume_entity',
@@ -7068,6 +7425,8 @@ export default {
                 343: 'serverbound_data_driven_screen_closed',
                 344: 'sync_world_clocks',
                 345: 'clientbound_attribute_layer_sync',
+                346: 'server_store_info',
+                347: 'server_presence_info',
               },
             },
           ],
@@ -7236,7 +7595,7 @@ export default {
                 correct_player_move_prediction: 'packet_correct_player_move_prediction',
                 item_registry: 'packet_item_registry',
                 filter_text_packet: 'packet_filter_text_packet',
-                debug_renderer: 'packet_debug_renderer',
+                primitive_shapes: 'packet_primitive_shapes',
                 sync_entity_property: 'packet_sync_entity_property',
                 add_volume_entity: 'packet_add_volume_entity',
                 remove_volume_entity: 'packet_remove_volume_entity',
@@ -7318,6 +7677,8 @@ export default {
                 serverbound_data_driven_screen_closed: 'packet_serverbound_data_driven_screen_closed',
                 sync_world_clocks: 'packet_sync_world_clocks',
                 clientbound_attribute_layer_sync: 'packet_clientbound_attribute_layer_sync',
+                server_store_info: 'packet_server_store_info',
+                server_presence_info: 'packet_server_presence_info',
               },
             },
           ],
@@ -8886,6 +9247,8 @@ export default {
                 77: 'vibration_detected',
                 78: 'drink_milk',
                 79: 'wetness_stop',
+                80: 'kinetic_damage_dealt',
+                81: 'hurt_without_receiving_damage',
               },
             },
           ],
@@ -8893,6 +9256,13 @@ export default {
         {
           name: 'data',
           type: 'zigzag32',
+        },
+        {
+          name: 'fire_at_position',
+          type: [
+            'option',
+            'vec3f',
+          ],
         },
       ],
     ],
@@ -8978,7 +9348,7 @@ export default {
         },
         {
           name: 'item',
-          type: 'Item',
+          type: 'ItemNew',
         },
         {
           name: 'slot',
@@ -9385,15 +9755,21 @@ export default {
         },
         {
           name: 'container',
-          type: 'FullContainerName',
+          type: [
+            'option',
+            'FullContainerName',
+          ],
         },
         {
           name: 'storage_item',
-          type: 'Item',
+          type: [
+            'option',
+            'ItemNew',
+          ],
         },
         {
           name: 'item',
-          type: 'Item',
+          type: 'ItemNew',
         },
       ],
     ],
@@ -10407,7 +10783,7 @@ export default {
                                               58: 'raw_text',
                                               62: 'json',
                                               71: 'block_states',
-                                              74: 'command',
+                                              75: 'command',
                                             },
                                           },
                                         ],
@@ -10921,6 +11297,13 @@ export default {
         {
           name: 'pitch',
           type: 'lf32',
+        },
+        {
+          name: 'handle',
+          type: [
+            'option',
+            'lu64',
+          ],
         },
       ],
     ],
@@ -12023,6 +12406,13 @@ export default {
         {
           name: 'entity_unique_id',
           type: 'li64',
+        },
+        {
+          name: 'fire_at_position',
+          type: [
+            'option',
+            'vec3f',
+          ],
         },
       ],
     ],
@@ -13322,26 +13712,16 @@ export default {
         },
       ],
     ],
-    packet_debug_renderer: [
+    packet_primitive_shapes: [
       'container',
       [
         {
-          name: 'type',
-          type: 'string',
-        },
-        {
-          name: 'has_data',
-          type: 'bool',
-        },
-        {
-          name: 'data',
+          name: 'shapes',
           type: [
-            'switch',
+            'array',
             {
-              compareTo: 'has_data',
-              fields: {
-                true: 'DebugMarkerData',
-              },
+              countType: 'varint',
+              type: 'PrimitiveShape',
             },
           ],
         },
@@ -13935,6 +14315,10 @@ export default {
                         },
                       },
                     ],
+                  },
+                  {
+                    name: 'dimension_type',
+                    type: 'zigzag32',
                   },
                 ],
               ],
@@ -14965,6 +15349,26 @@ export default {
             },
           ],
         },
+        {
+          name: 'entity_diagnostics',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'EntityDiagnosticTimingInfo',
+            },
+          ],
+        },
+        {
+          name: 'system_diagnostics',
+          type: [
+            'array',
+            {
+              countType: 'varint',
+              type: 'SystemDiagnosticTimingInfo',
+            },
+          ],
+        },
       ],
     ],
     packet_camera_aim_assist: [
@@ -15385,6 +15789,18 @@ export default {
           type: 'lf32',
         },
         {
+          name: 'unknown_attribute_1',
+          type: 'lf32',
+        },
+        {
+          name: 'unknown_attribute_2',
+          type: 'lf32',
+        },
+        {
+          name: 'unknown_attribute_3',
+          type: 'lf32',
+        },
+        {
           name: 'entity_runtime_id',
           type: 'varint64',
         },
@@ -15413,6 +15829,13 @@ export default {
                 },
               },
             ],
+          ],
+        },
+        {
+          name: 'filter_profanity',
+          type: [
+            'option',
+            'bool',
           ],
         },
       ],
@@ -16006,8 +16429,11 @@ export default {
       'container',
       [
         {
-          name: 'party_id',
-          type: 'string',
+          name: 'party_info',
+          type: [
+            'option',
+            'PartyInfo',
+          ],
         },
       ],
     ],
@@ -16243,6 +16669,30 @@ export default {
                 ],
               },
             },
+          ],
+        },
+      ],
+    ],
+    packet_server_store_info: [
+      'container',
+      [
+        {
+          name: 'store_info',
+          type: [
+            'option',
+            'StoreEntryPointInfo',
+          ],
+        },
+      ],
+    ],
+    packet_server_presence_info: [
+      'container',
+      [
+        {
+          name: 'presence_info',
+          type: [
+            'option',
+            'PresenceInfo',
           ],
         },
       ],
