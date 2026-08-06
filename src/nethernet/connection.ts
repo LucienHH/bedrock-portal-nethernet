@@ -5,6 +5,7 @@ import { Server } from './server'
 const debugFn = require('debug')('bedrock-portal-nethernet')
 
 export const maxMessageSize = 10_000
+const connectionReadyTimeout = 15_000
 
 export class Connection {
 
@@ -22,6 +23,14 @@ export class Connection {
 
   buf: Buffer | null
 
+  iceConnected: boolean
+
+  opened: boolean
+
+  closed: boolean
+
+  readyTimeout: NodeJS.Timeout
+
   constructor(nethernet: Server, connectionId: bigint, rtcConnection: PeerConnection) {
 
     this.nethernet = nethernet
@@ -38,16 +47,57 @@ export class Connection {
 
     this.buf = Buffer.alloc(0)
 
+    this.iceConnected = false
+
+    this.opened = false
+
+    this.closed = false
+
+    this.readyTimeout = setTimeout(() => {
+      debugFn('Connection timed out waiting for reliable data channel', this.connectionId)
+      this.nethernet.closeConnection(this.connectionId, 'reliable data channel timed out')
+    }, connectionReadyTimeout)
+    this.readyTimeout.unref()
+
   }
 
   setChannels(reliable: DataChannel | null, unreliable?: DataChannel) {
     if (reliable) {
       this.reliable = reliable
       this.reliable.onMessage((msg) => this.handleMessage(msg))
+      this.reliable.onOpen(() => {
+        debugFn('Reliable data channel opened', this.connectionId)
+        this.openIfReady()
+      })
+      this.reliable.onClosed(() => {
+        debugFn('Reliable data channel closed', this.connectionId)
+        this.nethernet.closeConnection(this.connectionId, 'reliable data channel closed')
+      })
+      this.reliable.onError(error => {
+        debugFn('Reliable data channel error', this.connectionId, error)
+        this.nethernet.closeConnection(this.connectionId, `reliable data channel error: ${error}`)
+      })
+      this.openIfReady()
     }
     if (unreliable) {
       this.unreliable = unreliable
+      this.unreliable.onOpen(() => debugFn('Unreliable data channel opened', this.connectionId))
+      this.unreliable.onClosed(() => debugFn('Unreliable data channel closed', this.connectionId))
+      this.unreliable.onError(error => debugFn('Unreliable data channel error', this.connectionId, error))
     }
+  }
+
+  setIceConnected(connected: boolean) {
+    this.iceConnected = connected
+    this.openIfReady()
+  }
+
+  private openIfReady() {
+    if (this.opened || this.closed || !this.iceConnected || !this.reliable?.isOpen()) return
+
+    this.opened = true
+    clearTimeout(this.readyTimeout)
+    this.nethernet.onOpenConnection(this)
   }
 
   handleMessage(data: string | Buffer | ArrayBuffer) {
@@ -128,6 +178,10 @@ export class Connection {
   }
 
   close() {
+    if (this.closed) return
+
+    this.closed = true
+    clearTimeout(this.readyTimeout)
     if (this.reliable) {
       this.reliable.close()
     }
