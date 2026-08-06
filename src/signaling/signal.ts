@@ -237,11 +237,16 @@ export class Signal extends EventEmitter {
   onOpen() {
     debug('Signal Connected to Signal')
 
-    this.rpc.timeout(15000).request(TURN_AUTH_METHOD, {}, undefined)
+    void Promise.resolve(this.rpc.timeout(15000).request(TURN_AUTH_METHOD, {}, undefined))
       .then(res => {
         this.credentials = parseTurnServers(res)
+        this.retryCount = 0
 
         this.emit('credentials', this.credentials)
+      })
+      .catch((error: unknown) => {
+        debug('Failed to obtain TURN credentials', error)
+        this.emitConnectError(error)
       })
 
 
@@ -360,15 +365,19 @@ function parseTurnServers(data: TurnAuthResponse) {
     if (!server.Urls) continue
 
     for (const url of server.Urls) {
-      const match = url.match(/(stun|turn):([^:]+):(\d+)/)
-      if (match) {
-        servers.push({
-          hostname: match[2],
-          port: parseInt(match[3], 10),
-          username: server.Username,
-          password: server.Password,
-        })
-      }
+      const match = url.match(/^(stun|turn|turns):(?:\/\/)?(\[[^\]]+\]|[^:?]+)(?::(\d+))?(?:\?([^#]*))?$/i)
+      if (!match) continue
+
+      const scheme = match[1].toLowerCase()
+      const transport = new URLSearchParams(match[4]).get('transport')?.toLowerCase()
+      const relayType = scheme === 'turns' ? 'TurnTls' : scheme === 'turn' && transport === 'tcp' ? 'TurnTcp' : scheme === 'turn' ? 'TurnUdp' : undefined
+      servers.push({
+        hostname: match[2].replace(/^\[|\]$/g, ''),
+        port: match[3] ? parseInt(match[3], 10) : scheme === 'turns' ? 5349 : 3478,
+        username: server.Username,
+        password: server.Password,
+        ...(relayType && { relayType }),
+      })
     }
   }
 

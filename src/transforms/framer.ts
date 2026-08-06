@@ -3,6 +3,9 @@ import zlib from 'zlib'
 
 import { Player } from '../serverPlayer'
 
+const maxDecompressedLength = 16 * 1024 * 1024
+const maxPacketsPerBatch = 4096
+
 export enum CompressionAlgorithm {
   None = 'none',
   Deflate = 'deflate',
@@ -55,7 +58,7 @@ export class Framer {
     switch (algorithm) {
       case 0:
       case 'deflate':
-        return zlib.inflateRawSync(buffer, { chunkSize: 512000 })
+        return zlib.inflateRawSync(buffer, { chunkSize: 512000, maxOutputLength: maxDecompressedLength })
       case 1:
       case 'snappy':
         throw Error('Snappy compression not implemented')
@@ -89,6 +92,10 @@ export class Framer {
       catch (e) {
         decompressed = buffer
       }
+    }
+
+    if (decompressed.length > maxDecompressedLength) {
+      throw new Error(`Decompressed batch exceeds ${maxDecompressedLength} bytes`)
     }
     return Framer.getPackets(decompressed)
   }
@@ -134,10 +141,17 @@ export class Framer {
     let offset = 0
     while (offset < buffer.byteLength) {
       const { value, size } = readVarInt(buffer, offset)
-      const dec = Buffer.allocUnsafe(value)
       offset += size
-      offset += buffer.copy(dec, 0, offset, offset + value)
-      packets.push(dec)
+
+      if (!Number.isSafeInteger(value) || value <= 0 || value > buffer.byteLength - offset) {
+        throw new Error(`Invalid packet length ${value}`)
+      }
+      if (packets.length >= maxPacketsPerBatch) {
+        throw new Error(`Batch exceeds ${maxPacketsPerBatch} packets`)
+      }
+
+      packets.push(buffer.subarray(offset, offset + value))
+      offset += value
     }
     return packets
   }

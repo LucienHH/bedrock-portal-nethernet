@@ -1,4 +1,4 @@
-import { sign } from 'jsonwebtoken'
+import { SignJWT } from 'jose'
 import { KeyExportOptions, generateKeyPairSync } from 'crypto'
 import { Player } from '../serverPlayer'
 
@@ -17,7 +17,7 @@ export function KeyExchange(client: Player) {
   client.privateKeyPEM = client.ecdhKeyPair.privateKey.export(pem)
   client.clientX509 = client.publicKeyDER.toString('base64')
 
-  function startClientboundEncryption(publicKey: { key: string }) {
+  async function startClientboundEncryption(publicKey: { key: string }) {
     debug('[encrypt] Client pub key base64: ', publicKey)
 
     // const pubKeyDer = crypto.createPublicKey({ key: Buffer.from(publicKey.key, 'base64'), ...der })
@@ -34,10 +34,13 @@ export function KeyExchange(client: Player) {
     // secretHash.update(SALT)
     // secretHash.update(client.sharedSecret)
 
-    const token = sign({
+    const token = await new SignJWT({
       salt: toBase64(SALT),
       signedToken: client.clientX509,
-    }, client.ecdhKeyPair.privateKey, { algorithm: 'ES384', header: { x5u: client.clientX509, alg: 'ES384' } })
+    })
+      .setProtectedHeader({ x5u: client.clientX509, alg: 'ES384' })
+      .setIssuedAt()
+      .sign(client.ecdhKeyPair.privateKey)
 
     client.write('server_to_client_handshake', { token })
     // client.secretKeyBytes = secretHash.digest()
@@ -49,7 +52,12 @@ export function KeyExchange(client: Player) {
     // client.startEncryption(initial)
   }
 
-  client.on('server.client_handshake', startClientboundEncryption)
+  client.on('server.client_handshake', publicKey => {
+    void startClientboundEncryption(publicKey).catch(error => {
+      debug('Failed to create server handshake token', error)
+      client.server.nethernet?.closeConnection(client.connection, 'server handshake failed')
+    })
+  })
 }
 
 function toBase64(string: string) {

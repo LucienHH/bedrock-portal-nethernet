@@ -5,7 +5,7 @@ import { Server } from './server'
 import LoginVerify from './handshake/loginVerify'
 import { Connection } from './nethernet/connection'
 import { KeyExchange } from './handshake/keyExchange'
-import { serialize, isDebug } from './datatypes/util'
+import { serialize } from './datatypes/util'
 import { CURRENT_VERSION, Options } from './options'
 import { CompressionAlgorithm, Framer } from './transforms/framer'
 
@@ -115,10 +115,8 @@ export class Player extends TypedEmitter<PlayerEvents> {
 
     this.#status = ClientStatus.Authenticating
 
-    if (isDebug) {
-      this.inLog = (...args) => debug('C -> S', ...args)
-      this.outLog = (...args) => debug('S -> C', ...args)
-    }
+    this.inLog = (...args) => debug('C -> S', ...args)
+    this.outLog = (...args) => debug('S -> C', ...args)
 
     this.batchHeader = this.server.batchHeader
     this.disableEncryption = this.server.disableEncryption
@@ -367,7 +365,15 @@ export class Player extends TypedEmitter<PlayerEvents> {
   }
 
   onDecryptedPacket = (buffer: Buffer) => {
-    const packets = Framer.decode(this, buffer)
+    let packets: Buffer[]
+    try {
+      packets = Framer.decode(this, buffer)
+    }
+    catch (error) {
+      debug('Dropping malformed batch from', this.connection.connectionId, error)
+      this.server.nethernet?.closeConnection(this.connection, 'invalid packet batch')
+      return
+    }
 
     for (const packet of packets) {
       this.readPacket(packet)

@@ -27,7 +27,7 @@ export class Server extends TypedEmitter<ServerEvents> {
 
   deserializer: any
 
-  clients: Map<bigint, Player>
+  clients: Map<Connection, Player>
 
   clientCount: number
 
@@ -93,15 +93,15 @@ export class Server extends TypedEmitter<ServerEvents> {
   onOpenConnection = (conn: Connection) => {
     this.conLog('New connection: ', conn?.connectionId)
     const player = new Player(this, conn)
-    this.clients.set(conn.connectionId, player)
+    this.clients.set(conn, player)
     this.clientCount++
     this.emit('connect', player)
   }
 
-  onCloseConnection = (id: bigint, reason: string) => {
-    this.conLog('Connection closed:', id, reason)
+  onCloseConnection = (conn: Connection, reason: string) => {
+    this.conLog('Connection closed:', conn.connectionId, reason)
 
-    const player = this.clients.get(id)
+    const player = this.clients.get(conn)
 
     if (!player) {
       return
@@ -109,16 +109,16 @@ export class Server extends TypedEmitter<ServerEvents> {
 
     player.close(reason)
 
-    this.clients.delete(id)
+    this.clients.delete(conn)
 
     this.clientCount--
   }
 
-  onEncapsulated = (buffer: Buffer, address: bigint) => {
-    const client = this.clients.get(address)
+  onEncapsulated = (buffer: Buffer, connection: Connection) => {
+    const client = this.clients.get(connection)
     if (!client) {
       // Ignore packets from clients that are not connected.
-      debug(`Ignoring packet from unknown inet address: ${address}`)
+      debug(`Ignoring packet from unknown connection: ${connection.networkId}:${connection.connectionId}`)
       return
     }
 

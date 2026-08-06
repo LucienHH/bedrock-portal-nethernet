@@ -1,16 +1,17 @@
 import crypto from 'crypto'
-import JWT, { JwtPayload } from 'jsonwebtoken'
+import { decodeProtectedHeader, jwtVerify, JWTPayload } from 'jose'
 
 import { Player } from '../serverPlayer'
+import { publicKeysEqual } from '../nethernet/identity'
 import { PUBLIC_KEY } from './constants'
-import { getAuthorizationKey } from './authorizationKeys'
+import { getAuthorizationVerifier } from './authorizationKeys'
 
 const debug = require('debug')('bedrock-portal-nethernet')
 
 const AUTHORISATION_AUDIENCE = 'api://auth-minecraft-services/multiplayer'
 const AUTHORISATION_CLOCK_TOLERANCE_SECONDS = 60
 
-type LoginTokenPayload = JwtPayload & {
+type LoginTokenPayload = JWTPayload & {
   XUID?: string
   cpk?: string
   clientPublicKey?: string
@@ -32,31 +33,12 @@ type LoginTokenPayload = JwtPayload & {
   }
 }
 
-type JwtHeader = {
-  kid?: string
-  x5u?: string
-}
-
-function getJwtObject<T extends object>(decoded: string | JwtPayload, errorMessage: string): T {
-  if (!decoded || typeof decoded === 'string') {
-    throw new Error(errorMessage)
-  }
-
-  return decoded as T
-}
-
 function normalizeToken(token: string) {
   return token.replace(/^MCToken\s+/i, '').trim()
 }
 
 function getJwtHeader(token: string) {
-  const decoded = JWT.decode(normalizeToken(token), { complete: true }) as { header?: JwtHeader } | null
-
-  if (!decoded?.header || typeof decoded.header !== 'object') {
-    throw new Error('Missing JWT header')
-  }
-
-  return decoded.header
+  return decodeProtectedHeader(normalizeToken(token))
 }
 
 function getTokenUserData(decoded: LoginTokenPayload) {
@@ -79,20 +61,13 @@ export default (client: Player) => {
 
   async function verifyTokenAuth(token: string) {
     const normalizedToken = normalizeToken(token)
-    const header = getJwtHeader(normalizedToken)
-
-    if (!header.kid) {
-      throw new Error('Authorization token missing key id')
-    }
-
-    const { issuer, key } = await getAuthorizationKey(client.options.protocolVersion, header.kid)
-
-    const decoded = getJwtObject<LoginTokenPayload>(JWT.verify(normalizedToken, key, {
+    const { issuer, keys } = await getAuthorizationVerifier(client.options.protocolVersion)
+    const { payload: decoded } = await jwtVerify<LoginTokenPayload>(normalizedToken, keys, {
       algorithms: ['RS256'],
       clockTolerance: AUTHORISATION_CLOCK_TOLERANCE_SECONDS,
       issuer,
       audience: AUTHORISATION_AUDIENCE,
-    }), 'Invalid login token')
+    })
 
     const publicKey = decoded.cpk || decoded.clientPublicKey
     if (!publicKey) {
@@ -105,7 +80,7 @@ export default (client: Player) => {
     }
   }
 
-  function verifyChainAuth(chain: string[]) {
+  async function verifyChainAuth(chain: string[]) {
     let data: LoginTokenPayload = {}
 
     // There are three JWT tokens sent to us, one signed by the client
@@ -119,7 +94,7 @@ export default (client: Player) => {
     let finalKey = ''
 
     for (const token of chain) {
-      const decoded: LoginTokenPayload = getJwtObject<LoginTokenPayload>(JWT.verify(token, pubKey, { algorithms: ['ES384'] }), 'Invalid login token')
+      const { payload: decoded } = await jwtVerify<LoginTokenPayload>(token, pubKey, { algorithms: ['ES384'] })
 
       // Check if signed by Mojang key
       const x5u = getX5U(token)
@@ -128,7 +103,7 @@ export default (client: Player) => {
         debug('Verified client with mojang key', x5u)
       }
 
-      pubKey = decoded.identityPublicKey ? getDER(decoded.identityPublicKey) : x5u
+      pubKey = getDER(decoded.identityPublicKey || x5u)
       finalKey = decoded.identityPublicKey || finalKey // non pem
       data = { ...data, ...decoded }
     }
@@ -140,18 +115,22 @@ export default (client: Player) => {
     return { key: finalKey, data }
   }
 
-  function verifySkin(publicKey: string, token: string) {
+  async function verifySkin(publicKey: string, token: string) {
     if (getX5U(token) !== publicKey) {
       throw new Error('Invalid JWT signature')
     }
 
     const pubKey = getDER(publicKey)
-    return getJwtObject<Record<string, unknown>>(JWT.verify(token, pubKey, { algorithms: ['ES384'] }), 'Invalid JWT payload')
+    const { payload } = await jwtVerify<Record<string, unknown>>(token, pubKey, { algorithms: ['ES384'] })
+    return payload
   }
 
   client.decodeLoginJWT = async (authTokens: string[], skinTokens: string, authToken = '') => {
-    const { key, data } = authToken ? await verifyTokenAuth(authToken) : verifyChainAuth(authTokens)
-    const skinData = verifySkin(key, skinTokens)
+    const { key, data } = authToken ? await verifyTokenAuth(authToken) : await verifyChainAuth(authTokens)
+    if (!publicKeysEqual(key, client.connection.peerPublicKey)) {
+      throw new Error('Login public key does not match WebRTC peer identity')
+    }
+    const skinData = await verifySkin(key, skinTokens)
     return { key, userData: data, skinData }
   }
 
@@ -167,5 +146,5 @@ export default (client: Player) => {
 
 function getX5U(token: string) {
   const hjson = getJwtHeader(token)
-  return hjson.x5u || ''
+  return typeof hjson.x5u === 'string' ? hjson.x5u : ''
 }
