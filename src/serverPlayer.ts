@@ -367,7 +367,15 @@ export class Player extends TypedEmitter<PlayerEvents> {
   }
 
   onDecryptedPacket = (buffer: Buffer) => {
-    const packets = Framer.decode(this, buffer)
+    let packets: Buffer[]
+    try {
+      packets = Framer.decode(this, buffer)
+    }
+    catch (error) {
+      debug('Dropping malformed batch from', this.connection.connectionId, error)
+      this.server.nethernet?.closeConnection(this.connection, 'invalid packet batch')
+      return
+    }
 
     for (const packet of packets) {
       this.readPacket(packet)
