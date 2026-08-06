@@ -21,15 +21,13 @@ export class Server {
 
   signaling: Signal
 
-  connections: Map<bigint, Connection>
-
-  pendingCandidates: Map<bigint, SignalStructure[]>
+  connections: Map<string, Connection>
 
   onOpenConnection: (conn: Connection) => void
 
-  onCloseConnection: (id: bigint, reason: string) => void
+  onCloseConnection: (conn: Connection, reason: string) => void
 
-  onEncapsulated: (packet: Buffer, id: bigint) => void
+  onEncapsulated: (packet: Buffer, conn: Connection) => void
 
   constructor(signaling: Signal, networkId = getRandomUint64(), connectionId = getRandomUint64()) {
 
@@ -41,8 +39,6 @@ export class Server {
 
     this.connections = new Map()
 
-    this.pendingCandidates = new Map()
-
     this.onOpenConnection = () => { }
 
     this.onCloseConnection = () => { }
@@ -52,7 +48,7 @@ export class Server {
   }
 
   async handleCandidate(signal: SignalStructure) {
-    const conn = this.connections.get(signal.connectionId)
+    const conn = this.connections.get(this.connectionKey(signal))
 
     if (conn) {
       try {
@@ -63,10 +59,7 @@ export class Server {
       }
     }
     else {
-      const candidates = this.pendingCandidates.get(signal.connectionId) ?? []
-      candidates.push(signal)
-      this.pendingCandidates.set(signal.connectionId, candidates)
-      debugFn('Queued candidate until connection offer arrives', signal)
+      debugFn('Rejected candidate without matching connection', signal)
     }
 
   }
@@ -79,9 +72,15 @@ export class Server {
 
     const rtcConnection = new PeerConnection('pc', { iceServers: this.signaling.credentials })
 
-    const connection = new Connection(this, signal.connectionId, rtcConnection)
+    const key = this.connectionKey(signal)
+    const existing = this.connections.get(key)
+    if (existing) {
+      this.closeConnection(existing, 'connection replaced by a new offer')
+    }
 
-    this.connections.set(signal.connectionId, connection)
+    const connection = new Connection(this, signal.networkId, signal.connectionId, rtcConnection)
+
+    this.connections.set(key, connection)
 
     rtcConnection.onLocalCandidate(candidate => {
       this.signaling.write(
@@ -90,38 +89,38 @@ export class Server {
     })
 
     rtcConnection.onDataChannel(channel => {
-      debugFn('Received data channel', signal.connectionId, channel.getLabel())
-      if (channel.getLabel() === 'ReliableDataChannel') connection.setChannels(channel)
-      if (channel.getLabel() === 'UnreliableDataChannel') connection.setChannels(null, channel)
+      const label = channel.getLabel()
+      debugFn('Received data channel', signal.connectionId, label)
+      if (channel.getProtocol() !== '') {
+        this.closeConnection(connection, `invalid data channel protocol for ${label}`)
+      }
+      else if (label === 'ReliableDataChannel' && !connection.reliable) {
+        connection.setChannels(channel)
+      }
+      else if (label === 'UnreliableDataChannel' && !connection.unreliable) {
+        connection.setChannels(null, channel)
+      }
+      else {
+        this.closeConnection(connection, `invalid or duplicate data channel: ${label}`)
+      }
     })
 
     rtcConnection.onIceStateChange(state => {
       debugFn('ICE state changed', signal.connectionId, state)
       connection.setIceConnected(state === 'connected' || state === 'completed')
       if (state === 'disconnected' || state === 'failed' || state === 'closed') {
-        this.closeConnection(signal.connectionId, `ICE ${state}`)
+        this.closeConnection(connection, `ICE ${state}`)
       }
     })
 
     rtcConnection.onStateChange(state => {
       debugFn('Peer connection state changed', signal.connectionId, state)
       if (state === 'disconnected' || state === 'failed' || state === 'closed') {
-        this.closeConnection(signal.connectionId, `peer connection ${state}`)
+        this.closeConnection(connection, `peer connection ${state}`)
       }
     })
 
     rtcConnection.setRemoteDescription(signal.data, 'offer')
-
-    const pendingCandidates = this.pendingCandidates.get(signal.connectionId) ?? []
-    this.pendingCandidates.delete(signal.connectionId)
-    for (const candidate of pendingCandidates) {
-      try {
-        rtcConnection.addRemoteCandidate(candidate.data, '0')
-      }
-      catch (error) {
-        debugFn('Rejected invalid queued candidate', signal.connectionId, error)
-      }
-    }
 
     const answer = rtcConnection.localDescription()
 
@@ -145,9 +144,15 @@ export class Server {
         case SignalType.ConnectRequest:
           void this.handleOffer(signal).catch(error => {
             debugFn('Failed to handle connection offer', signal.connectionId, error)
-            this.closeConnection(signal.connectionId, 'invalid connection offer')
+            const connection = this.connections.get(this.connectionKey(signal))
+            if (connection) this.closeConnection(connection, 'invalid connection offer')
           })
           break
+        case SignalType.ConnectError: {
+          const connection = this.connections.get(this.connectionKey(signal))
+          if (connection) this.closeConnection(connection, `remote connection error: ${signal.data}`)
+          break
+        }
         case SignalType.CandidateAdd:
           void this.handleCandidate(signal).catch(error => {
             debugFn('Failed to handle remote candidate', signal.connectionId, error)
@@ -160,14 +165,13 @@ export class Server {
     })
   }
 
-  closeConnection(id: bigint, reason: string) {
-    const connection = this.connections.get(id)
-    if (!connection) return
+  closeConnection(connection: Connection, reason: string) {
+    const key = this.connectionKey(connection)
+    if (this.connections.get(key) !== connection) return
 
-    this.connections.delete(id)
-    this.pendingCandidates.delete(id)
+    this.connections.delete(key)
     connection.close()
-    this.onCloseConnection(id, reason)
+    this.onCloseConnection(connection, reason)
   }
 
   close() {
@@ -175,7 +179,10 @@ export class Server {
       conn.close()
     }
     this.connections.clear()
-    this.pendingCandidates.clear()
+  }
+
+  private connectionKey(connection: Pick<Connection, 'networkId' | 'connectionId'> | Pick<SignalStructure, 'networkId' | 'connectionId'>) {
+    return `${connection.networkId}:${connection.connectionId}`
   }
 
 }
