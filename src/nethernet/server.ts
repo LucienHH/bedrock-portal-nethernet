@@ -75,7 +75,7 @@ export class Server {
       throw new Error('No credentials set')
     }
 
-    const peerPublicKey = verifyIdentity(signal.data)
+    const peerPublicKey = await verifyIdentity(signal.data)
     const rtcConnection = new PeerConnection('pc', { iceServers: this.signaling.credentials })
 
     const key = this.connectionKey(signal)
@@ -134,7 +134,7 @@ export class Server {
       throw new Error('No answer')
     }
 
-    const signedAnswer = signServerIdentity(answer.sdp, this.identity)
+    const signedAnswer = await signServerIdentity(answer.sdp, this.identity)
     this.signaling.write(
       new SignalStructure(SignalType.ConnectResponse, signal.connectionId, signedAnswer, signal.networkId, signal.pmsgId)
     )

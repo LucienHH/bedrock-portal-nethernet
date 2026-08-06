@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { CompactSign, decodeJwt, flattenedVerify, SignJWT } from 'jose'
 
 type IdentityData = {
   assertion?: string
@@ -32,15 +33,19 @@ export function createServerIdentity(): ServerIdentity {
   }
 }
 
-export function signServerIdentity(sdp: string, identity: ServerIdentity) {
+export async function signServerIdentity(sdp: string, identity: ServerIdentity) {
   const now = Math.floor(Date.now() / 1000)
-  const token = signCompactJws(Buffer.from(JSON.stringify({
-    cpk: identity.publicKey,
-    exp: now + 60,
-    iat: now,
-  })), identity.privateKey, { alg: 'ES384', x5u: identity.publicKey })
+  const token = await new SignJWT({ cpk: identity.publicKey })
+    .setProtectedHeader({ alg: 'ES384', x5u: identity.publicKey })
+    .setIssuedAt(now)
+    .setExpirationTime(now + 60)
+    .sign(identity.privateKey)
 
-  const fingerprints = signCompactJws(fingerprintPayload(sdp), identity.privateKey, { alg: 'ES384' }, true)
+  const signedFingerprints = await new CompactSign(fingerprintPayload(sdp))
+    .setProtectedHeader({ alg: 'ES384' })
+    .sign(identity.privateKey)
+  const [protectedHeader, , signature] = signedFingerprints.split('.')
+  const fingerprints = `${protectedHeader}..${signature}`
   const value = Buffer.from(JSON.stringify({
     assertion: JSON.stringify({ fingerprints, token }),
     idp: { domain: 'self', protocol: 'default' },
@@ -49,7 +54,7 @@ export function signServerIdentity(sdp: string, identity: ServerIdentity) {
   return addSessionAttribute(sdp, `a=identity:${value}`)
 }
 
-export function verifyIdentity(sdp: string) {
+export async function verifyIdentity(sdp: string) {
   const identityValue = getSdpAttribute(sdp, 'identity')
   if (!identityValue) throw new Error('Missing SDP identity assertion')
 
@@ -63,10 +68,7 @@ export function verifyIdentity(sdp: string) {
     throw new Error('Incomplete SDP identity assertion')
   }
 
-  const tokenParts = assertion.token.split('.')
-  if (tokenParts.length !== 3) throw new Error('Malformed identity token')
-
-  const token = parseJson<IdentityToken>(Buffer.from(tokenParts[1], 'base64url').toString('utf8'), 'identity token')
+  const token = decodeJwt<IdentityToken>(assertion.token)
   if (!token.cpk) throw new Error('Identity token missing client public key')
 
   const now = Date.now() / 1000
@@ -74,7 +76,7 @@ export function verifyIdentity(sdp: string) {
   if (token.nbf !== undefined && token.nbf > now) throw new Error('Identity token is not valid yet')
 
   const publicKey = parsePublicKey(token.cpk)
-  verifyDetachedSignature(assertion.fingerprints, fingerprintPayload(sdp), publicKey)
+  await verifyDetachedSignature(assertion.fingerprints, fingerprintPayload(sdp), publicKey)
   return publicKey.export({ format: 'der', type: 'spki' })
 }
 
@@ -82,26 +84,15 @@ export function publicKeysEqual(encodedKey: string, expectedKey: Buffer) {
   return parsePublicKey(encodedKey).export({ format: 'der', type: 'spki' }).equals(expectedKey)
 }
 
-function verifyDetachedSignature(compact: string, payload: Buffer, publicKey: crypto.KeyObject) {
+async function verifyDetachedSignature(compact: string, payload: Buffer, publicKey: crypto.KeyObject) {
   const parts = compact.split('.')
   if (parts.length !== 3 || parts[1] !== '') throw new Error('Malformed detached fingerprint signature')
 
-  const header = parseJson<{ alg?: string }>(Buffer.from(parts[0], 'base64url').toString('utf8'), 'fingerprint signature header')
-  if (header.alg !== 'ES384') throw new Error(`Unexpected fingerprint signature algorithm: ${header.alg}`)
-
-  const signingInput = Buffer.from(`${parts[0]}.${payload.toString('base64url')}`)
-  const signature = Buffer.from(parts[2], 'base64url')
-  if (!crypto.verify('sha384', signingInput, { key: publicKey, dsaEncoding: 'ieee-p1363' }, signature)) {
-    throw new Error('Invalid SDP fingerprint signature')
-  }
-}
-
-function signCompactJws(payload: Buffer, privateKey: crypto.KeyObject, header: Record<string, string>, detached = false) {
-  const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url')
-  const encodedPayload = payload.toString('base64url')
-  const signingInput = Buffer.from(`${encodedHeader}.${encodedPayload}`)
-  const signature = crypto.sign('sha384', signingInput, { key: privateKey, dsaEncoding: 'ieee-p1363' }).toString('base64url')
-  return `${encodedHeader}.${detached ? '' : encodedPayload}.${signature}`
+  await flattenedVerify({
+    protected: parts[0],
+    payload: payload.toString('base64url'),
+    signature: parts[2],
+  }, publicKey, { algorithms: ['ES384'] })
 }
 
 function fingerprintPayload(sdp: string) {

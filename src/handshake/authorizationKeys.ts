@@ -1,8 +1,7 @@
-import crypto from 'crypto'
+import { createRemoteJWKSet } from 'jose'
 
 const debug = require('debug')('bedrock-portal-nethernet')
 
-const AUTHORISATION_KEY_REFRESH_INTERVAL_MS = 30 * 60 * 1000
 const AUTHORISATION_FETCH_TIMEOUT_MS = 10_000
 const AUTHORISATION_SERVICE_URI_FALLBACK = 'https://authorization.franchise.minecraft-services.net'
 const AUTHORISATION_SERVICE_OPENID_CONFIGURATION_PATH = '/.well-known/openid-configuration'
@@ -27,23 +26,12 @@ type DiscoveryResponse = {
   }
 }
 
-type AuthorizationJwk = crypto.JsonWebKey & {
-  kid?: string
-}
-
-type AuthorizationJwkSet = {
-  keys?: AuthorizationJwk[]
-}
-
-type AuthorizationKeyring = {
-  fetchedAt: number
+type AuthorizationVerifier = {
   issuer: string
-  keys: Map<string, crypto.KeyObject>
-  protocolVersion: number
+  keys: ReturnType<typeof createRemoteJWKSet>
 }
 
-let cachedAuthorizationKeyring: AuthorizationKeyring | null = null
-let inflightAuthorizationKeyring: Promise<AuthorizationKeyring> | null = null
+const authorizationVerifiers = new Map<number, Promise<AuthorizationVerifier>>()
 
 async function fetchJson<T>(url: URL): Promise<T> {
   let response: Response
@@ -95,63 +83,24 @@ async function resolveAuthorizationUrls(protocolVersion: number) {
   return { issuer, jwksUrl }
 }
 
-async function fetchAuthorizationKeyring(protocolVersion: number): Promise<AuthorizationKeyring> {
+async function createAuthorizationVerifier(protocolVersion: number): Promise<AuthorizationVerifier> {
   const { issuer, jwksUrl } = await resolveAuthorizationUrls(protocolVersion)
-  const payload = await fetchJson<AuthorizationJwkSet>(jwksUrl)
-  const keys = new Map<string, crypto.KeyObject>()
-
-  for (const jwk of payload.keys || []) {
-    if (!jwk.kid) continue
-    keys.set(jwk.kid, crypto.createPublicKey({ key: jwk, format: 'jwk' }))
-  }
-
-  if (keys.size === 0) {
-    throw new Error('No valid authentication keys returned by Microsoft')
-  }
 
   return {
-    fetchedAt: Date.now(),
     issuer,
-    keys,
-    protocolVersion,
+    keys: createRemoteJWKSet(jwksUrl, {
+      cacheMaxAge: 30 * 60 * 1000,
+      timeoutDuration: AUTHORISATION_FETCH_TIMEOUT_MS,
+    }),
   }
 }
 
-function isAuthorizationKeyringFresh(protocolVersion: number) {
-  return cachedAuthorizationKeyring !== null &&
-    cachedAuthorizationKeyring.protocolVersion === protocolVersion &&
-    Date.now() - cachedAuthorizationKeyring.fetchedAt < AUTHORISATION_KEY_REFRESH_INTERVAL_MS
-}
-
-async function refreshAuthorizationKeyring(protocolVersion: number) {
-  inflightAuthorizationKeyring ??= fetchAuthorizationKeyring(protocolVersion)
-
-  try {
-    const keyring = await inflightAuthorizationKeyring
-    cachedAuthorizationKeyring = keyring
-    return keyring
+export function getAuthorizationVerifier(protocolVersion: number) {
+  let verifier = authorizationVerifiers.get(protocolVersion)
+  if (!verifier) {
+    verifier = createAuthorizationVerifier(protocolVersion)
+    authorizationVerifiers.set(protocolVersion, verifier)
+    void verifier.catch(() => authorizationVerifiers.delete(protocolVersion))
   }
-  finally {
-    inflightAuthorizationKeyring = null
-  }
-}
-
-export async function getAuthorizationKey(protocolVersion: number, keyId: string) {
-  let keyring = isAuthorizationKeyringFresh(protocolVersion)
-    ? cachedAuthorizationKeyring
-    : await refreshAuthorizationKeyring(protocolVersion)
-
-  if (!keyring || !keyring.keys.has(keyId)) {
-    keyring = await refreshAuthorizationKeyring(protocolVersion)
-  }
-
-  const key = keyring.keys.get(keyId)
-  if (!key) {
-    throw new Error(`Unrecognized authentication key ID: ${keyId}`)
-  }
-
-  return {
-    issuer: keyring.issuer,
-    key,
-  }
+  return verifier
 }
