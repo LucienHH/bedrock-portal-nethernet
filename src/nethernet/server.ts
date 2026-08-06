@@ -1,7 +1,7 @@
 import { PeerConnection } from 'node-datachannel'
 
 import { Connection } from './connection'
-import { verifyIdentity } from './identity'
+import { createServerIdentity, ServerIdentity, signServerIdentity, verifyIdentity } from './identity'
 import { Signal } from '../signaling/signal'
 import { SignalStructure, SignalType } from '../signaling/struct'
 
@@ -22,6 +22,8 @@ export class Server {
 
   signaling: Signal
 
+  identity: ServerIdentity
+
   connections: Map<string, Connection>
 
   onOpenConnection: (conn: Connection) => void
@@ -33,6 +35,8 @@ export class Server {
   constructor(signaling: Signal, networkId = getRandomUint64(), connectionId = getRandomUint64()) {
 
     this.signaling = signaling
+
+    this.identity = createServerIdentity()
 
     this.networkId = networkId
 
@@ -130,8 +134,9 @@ export class Server {
       throw new Error('No answer')
     }
 
+    const signedAnswer = signServerIdentity(answer.sdp, this.identity)
     this.signaling.write(
-      new SignalStructure(SignalType.ConnectResponse, signal.connectionId, answer.sdp, signal.networkId, signal.pmsgId)
+      new SignalStructure(SignalType.ConnectResponse, signal.connectionId, signedAnswer, signal.networkId, signal.pmsgId)
     )
 
   }

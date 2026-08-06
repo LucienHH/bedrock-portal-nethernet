@@ -19,6 +19,36 @@ type IdentityToken = {
   nbf?: number
 }
 
+export type ServerIdentity = {
+  privateKey: crypto.KeyObject
+  publicKey: string
+}
+
+export function createServerIdentity(): ServerIdentity {
+  const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'secp384r1' })
+  return {
+    privateKey,
+    publicKey: publicKey.export({ format: 'der', type: 'spki' }).toString('base64'),
+  }
+}
+
+export function signServerIdentity(sdp: string, identity: ServerIdentity) {
+  const now = Math.floor(Date.now() / 1000)
+  const token = signCompactJws(Buffer.from(JSON.stringify({
+    cpk: identity.publicKey,
+    exp: now + 60,
+    iat: now,
+  })), identity.privateKey, { alg: 'ES384', x5u: identity.publicKey })
+
+  const fingerprints = signCompactJws(fingerprintPayload(sdp), identity.privateKey, { alg: 'ES384' }, true)
+  const value = Buffer.from(JSON.stringify({
+    assertion: JSON.stringify({ fingerprints, token }),
+    idp: { domain: 'self', protocol: 'default' },
+  })).toString('base64')
+
+  return addSessionAttribute(sdp, `a=identity:${value}`)
+}
+
 export function verifyIdentity(sdp: string) {
   const identityValue = getSdpAttribute(sdp, 'identity')
   if (!identityValue) throw new Error('Missing SDP identity assertion')
@@ -44,20 +74,7 @@ export function verifyIdentity(sdp: string) {
   if (token.nbf !== undefined && token.nbf > now) throw new Error('Identity token is not valid yet')
 
   const publicKey = parsePublicKey(token.cpk)
-  const fingerprint = getSdpAttribute(sdp, 'fingerprint')
-  if (!fingerprint) throw new Error('Missing SDP fingerprint')
-
-  const separator = fingerprint.indexOf(' ')
-  if (separator === -1) throw new Error('Malformed SDP fingerprint')
-
-  const signedPayload = Buffer.from(JSON.stringify({
-    fingerprint: [{
-      algorithm: fingerprint.slice(0, separator),
-      digest: fingerprint.slice(separator + 1),
-    }],
-  }))
-
-  verifyDetachedSignature(assertion.fingerprints, signedPayload, publicKey)
+  verifyDetachedSignature(assertion.fingerprints, fingerprintPayload(sdp), publicKey)
   return publicKey.export({ format: 'der', type: 'spki' })
 }
 
@@ -77,6 +94,39 @@ function verifyDetachedSignature(compact: string, payload: Buffer, publicKey: cr
   if (!crypto.verify('sha384', signingInput, { key: publicKey, dsaEncoding: 'ieee-p1363' }, signature)) {
     throw new Error('Invalid SDP fingerprint signature')
   }
+}
+
+function signCompactJws(payload: Buffer, privateKey: crypto.KeyObject, header: Record<string, string>, detached = false) {
+  const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url')
+  const encodedPayload = payload.toString('base64url')
+  const signingInput = Buffer.from(`${encodedHeader}.${encodedPayload}`)
+  const signature = crypto.sign('sha384', signingInput, { key: privateKey, dsaEncoding: 'ieee-p1363' }).toString('base64url')
+  return `${encodedHeader}.${detached ? '' : encodedPayload}.${signature}`
+}
+
+function fingerprintPayload(sdp: string) {
+  const fingerprint = getSdpAttribute(sdp, 'fingerprint')
+  if (!fingerprint) throw new Error('Missing SDP fingerprint')
+
+  const separator = fingerprint.indexOf(' ')
+  if (separator === -1) throw new Error('Malformed SDP fingerprint')
+
+  return Buffer.from(JSON.stringify({
+    fingerprint: [{
+      algorithm: fingerprint.slice(0, separator),
+      digest: fingerprint.slice(separator + 1),
+    }],
+  }))
+}
+
+function addSessionAttribute(sdp: string, attribute: string) {
+  const lineEnding = sdp.includes('\r\n') ? '\r\n' : '\n'
+  const lines = sdp.split(lineEnding)
+  const mediaIndex = lines.findIndex(line => line.startsWith('m='))
+  if (mediaIndex === -1) throw new Error('SDP has no media description')
+
+  lines.splice(mediaIndex, 0, attribute)
+  return lines.join(lineEnding)
 }
 
 function parsePublicKey(encodedKey: string) {
