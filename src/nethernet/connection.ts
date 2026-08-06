@@ -16,6 +16,8 @@ export class Connection {
 
   networkId: bigint
 
+  peerPublicKey: Buffer
+
   rtcConnection: PeerConnection
 
   reliable: DataChannel | null
@@ -34,13 +36,15 @@ export class Connection {
 
   readyTimeout: NodeJS.Timeout
 
-  constructor(nethernet: Server, networkId: bigint, connectionId: bigint, rtcConnection: PeerConnection) {
+  constructor(nethernet: Server, networkId: bigint, connectionId: bigint, peerPublicKey: Buffer, rtcConnection: PeerConnection) {
 
     this.nethernet = nethernet
 
     this.connectionId = connectionId
 
     this.networkId = networkId
+
+    this.peerPublicKey = peerPublicKey
 
     this.rtcConnection = rtcConnection
 

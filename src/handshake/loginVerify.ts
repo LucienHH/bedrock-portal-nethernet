@@ -2,6 +2,7 @@ import crypto from 'crypto'
 import JWT, { JwtPayload } from 'jsonwebtoken'
 
 import { Player } from '../serverPlayer'
+import { publicKeysEqual } from '../nethernet/identity'
 import { PUBLIC_KEY } from './constants'
 import { getAuthorizationKey } from './authorizationKeys'
 
@@ -151,6 +152,9 @@ export default (client: Player) => {
 
   client.decodeLoginJWT = async (authTokens: string[], skinTokens: string, authToken = '') => {
     const { key, data } = authToken ? await verifyTokenAuth(authToken) : verifyChainAuth(authTokens)
+    if (!publicKeysEqual(key, client.connection.peerPublicKey)) {
+      throw new Error('Login public key does not match WebRTC peer identity')
+    }
     const skinData = verifySkin(key, skinTokens)
     return { key, userData: data, skinData }
   }

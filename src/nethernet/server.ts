@@ -1,6 +1,7 @@
 import { PeerConnection } from 'node-datachannel'
 
 import { Connection } from './connection'
+import { verifyIdentity } from './identity'
 import { Signal } from '../signaling/signal'
 import { SignalStructure, SignalType } from '../signaling/struct'
 
@@ -70,6 +71,7 @@ export class Server {
       throw new Error('No credentials set')
     }
 
+    const peerPublicKey = verifyIdentity(signal.data)
     const rtcConnection = new PeerConnection('pc', { iceServers: this.signaling.credentials })
 
     const key = this.connectionKey(signal)
@@ -78,7 +80,7 @@ export class Server {
       this.closeConnection(existing, 'connection replaced by a new offer')
     }
 
-    const connection = new Connection(this, signal.networkId, signal.connectionId, rtcConnection)
+    const connection = new Connection(this, signal.networkId, signal.connectionId, peerPublicKey, rtcConnection)
 
     this.connections.set(key, connection)
 
