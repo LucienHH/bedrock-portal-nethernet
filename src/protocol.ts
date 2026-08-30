@@ -3018,7 +3018,10 @@ export default {
                                   },
                                   {
                                     name: 'filtered_custom_name',
-                                    type: 'string',
+                                    type: [
+                                      'option',
+                                      'string',
+                                    ],
                                   },
                                   {
                                     name: 'durability_correction',
