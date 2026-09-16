@@ -1316,6 +1316,107 @@ export default {
           type: 'zigzag32',
         },
         {
+          name: 'hand',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'main_hand',
+                1: 'off_hand',
+              },
+            },
+          ],
+        },
+        {
+          name: 'held_item',
+          type: 'ItemV4',
+        },
+        {
+          name: 'player_pos',
+          type: 'vec3f',
+        },
+        {
+          name: 'click_pos',
+          type: 'vec3f',
+        },
+        {
+          name: 'block_runtime_id',
+          type: 'varint',
+        },
+        {
+          name: 'client_prediction',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'failure',
+                1: 'success',
+              },
+            },
+          ],
+        },
+        {
+          name: 'client_cooldown_state',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'off',
+                1: 'on',
+              },
+            },
+          ],
+        },
+      ],
+    ],
+    PlayerAuthInputTransactionUseItem: [
+      'container',
+      [
+        {
+          name: 'action_type',
+          type: [
+            'mapper',
+            {
+              type: 'zigzag32',
+              mappings: {
+                0: 'click_block',
+                1: 'click_air',
+                2: 'break_block',
+                3: 'attack',
+              },
+            },
+          ],
+        },
+        {
+          name: 'trigger_type',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'unknown',
+                1: 'player_input',
+                2: 'simulation_tick',
+              },
+            },
+          ],
+        },
+        {
+          name: 'block_position',
+          type: 'BlockCoordinates',
+        },
+        {
+          name: 'face',
+          type: 'u8',
+        },
+        {
+          name: 'hotbar_slot',
+          type: 'zigzag32',
+        },
+        {
           name: 'held_item',
           type: 'ItemV4',
         },
@@ -1384,19 +1485,11 @@ export default {
               ],
             },
             {
-              name: 'container_presence',
-              type: 'bool',
-            },
-            {
               name: 'window_id',
               type: [
                 'option',
                 'i8',
               ],
-            },
-            {
-              name: 'flag_presence',
-              type: 'bool',
             },
             {
               name: 'flags',
@@ -1479,28 +1572,22 @@ export default {
         {
           name: 'transaction_type',
           type: [
-            'option',
-            [
-              'mapper',
-              {
-                type: 'varint',
-                mappings: {
-                  0: 'normal',
-                  1: 'inventory_mismatch',
-                  2: 'item_use',
-                  3: 'item_use_on_entity',
-                  4: 'item_release',
-                },
+            'mapper',
+            {
+              type: 'varint',
+              mappings: {
+                0: 'normal',
+                1: 'inventory_mismatch',
+                2: 'item_use',
+                3: 'item_use_on_entity',
+                4: 'item_release',
               },
-            ],
+            },
           ],
         },
         {
           name: 'actions',
-          type: [
-            'option',
-            'TransactionActions',
-          ],
+          type: 'TransactionActions',
         },
         {
           name: 'transaction_data',
@@ -2221,101 +2308,102 @@ export default {
         },
       ],
     ],
+    PlayerRecord: [
+      'container',
+      [
+        {
+          name: 'type',
+          type: [
+            'mapper',
+            {
+              type: 'varint',
+              mappings: {
+                0: 'remove',
+                1: 'add',
+              },
+            },
+          ],
+        },
+        {
+          name: 'legacy_type',
+          type: 'u8',
+        },
+        {
+          anon: true,
+          type: [
+            'switch',
+            {
+              compareTo: 'type',
+              fields: {
+                add: [
+                  'container',
+                  [
+                    {
+                      name: 'uuid',
+                      type: 'uuid',
+                    },
+                    {
+                      name: 'entity_unique_id',
+                      type: 'zigzag64',
+                    },
+                    {
+                      name: 'username',
+                      type: 'string',
+                    },
+                    {
+                      name: 'xbox_user_id',
+                      type: 'string',
+                    },
+                    {
+                      name: 'platform_chat_id',
+                      type: 'string',
+                    },
+                    {
+                      name: 'build_platform',
+                      type: 'li32',
+                    },
+                    {
+                      name: 'skin_data',
+                      type: 'Skin',
+                    },
+                    {
+                      name: 'is_teacher',
+                      type: 'bool',
+                    },
+                    {
+                      name: 'is_host',
+                      type: 'bool',
+                    },
+                    {
+                      name: 'is_subclient',
+                      type: 'bool',
+                    },
+                    {
+                      name: 'player_color',
+                      type: 'i32',
+                    },
+                  ],
+                ],
+                remove: [
+                  'container',
+                  [
+                    {
+                      name: 'uuid',
+                      type: 'uuid',
+                    },
+                  ],
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    ],
     PlayerRecords: [
       'array',
       {
         countType: 'varint',
-        type: [
-          'container',
-          [
-            {
-              name: 'type',
-              type: [
-                'mapper',
-                {
-                  type: 'varint',
-                  mappings: {
-                    0: 'remove',
-                    1: 'add',
-                  },
-                },
-              ],
-            },
-            {
-              name: 'legacy_type',
-              type: 'u8',
-            },
-            {
-              anon: true,
-              type: [
-                'switch',
-                {
-                  compareTo: 'type',
-                  fields: {
-                    add: [
-                      'container',
-                      [
-                        {
-                          name: 'uuid',
-                          type: 'uuid',
-                        },
-                        {
-                          name: 'entity_unique_id',
-                          type: 'zigzag64',
-                        },
-                        {
-                          name: 'username',
-                          type: 'string',
-                        },
-                        {
-                          name: 'xbox_user_id',
-                          type: 'string',
-                        },
-                        {
-                          name: 'platform_chat_id',
-                          type: 'string',
-                        },
-                        {
-                          name: 'build_platform',
-                          type: 'li32',
-                        },
-                        {
-                          name: 'skin_data',
-                          type: 'Skin',
-                        },
-                        {
-                          name: 'is_teacher',
-                          type: 'bool',
-                        },
-                        {
-                          name: 'is_host',
-                          type: 'bool',
-                        },
-                        {
-                          name: 'is_subclient',
-                          type: 'bool',
-                        },
-                        {
-                          name: 'player_color',
-                          type: 'i32',
-                        },
-                      ],
-                    ],
-                    remove: [
-                      'container',
-                      [
-                        {
-                          name: 'uuid',
-                          type: 'uuid',
-                        },
-                      ],
-                    ],
-                  },
-                },
-              ],
-            },
-          ],
-        ],
+        type: 'PlayerRecord',
       },
     ],
     Enchant: [
@@ -2962,10 +3050,6 @@ export default {
               type: 'zigzag32',
             },
             {
-              name: 'containers_presence',
-              type: 'bool',
-            },
-            {
               name: 'containers',
               type: [
                 'option',
@@ -3002,10 +3086,6 @@ export default {
                                     type: 'u8',
                                   },
                                   {
-                                    name: 'item_stack_id_presence',
-                                    type: 'bool',
-                                  },
-                                  {
                                     name: 'item_stack_id',
                                     type: [
                                       'option',
@@ -3018,10 +3098,7 @@ export default {
                                   },
                                   {
                                     name: 'filtered_custom_name',
-                                    type: [
-                                      'option',
-                                      'string',
-                                    ],
+                                    type: 'string',
                                   },
                                   {
                                     name: 'durability_correction',
@@ -3128,31 +3205,13 @@ export default {
                 20: 'village_snowy',
                 21: 'village_taiga',
                 22: 'jungle_temple',
-                23: 'witch_hut =>',
-                24: 'marker_white',
-                25: 'marker_green',
-                26: 'marker_red',
-                27: 'marker_blue',
-                28: 'cross_white',
-                29: 'triangle_red',
-                30: 'square_white',
-                31: 'marker_sign',
-                32: 'marker_pink',
-                33: 'marker_orange',
-                34: 'marker_yellow',
-                35: 'marker_teal',
-                36: 'triangle_green',
-                37: 'small_square_white',
-                38: 'mansion',
-                39: 'monument',
-                40: 'no_draw',
-                41: 'village_desert',
-                42: 'village_plains',
-                43: 'village_savanna',
-                44: 'village_snowy',
-                45: 'village_taiga',
-                46: 'jungle_temple',
-                47: 'witch_hut',
+                23: 'witch_hut',
+                24: 'trial_chambers',
+                25: 'abandoned_camp',
+                26: 'buried_ancient_city',
+                27: 'buried_mineshaft',
+                28: 'desert_pyramid',
+                29: 'warm_ocean_ruins',
               },
             },
           ],
@@ -4682,6 +4741,17 @@ export default {
             ],
           ],
         },
+        {
+          name: 'apply_inherited_starting_rotation',
+          type: 'bool',
+        },
+        {
+          name: 'starting_rotation',
+          type: [
+            'option',
+            'vec2f',
+          ],
+        },
       ],
     ],
     CameraRotationOption: [
@@ -4950,60 +5020,59 @@ export default {
                 55: 'ore_ui_client',
                 56: 'persona_pieces',
                 57: 'persona_animations',
-                58: 'persona_textures',
-                59: 'persona_characters',
-                60: 'persona_skin_packs',
-                61: 'persona_repo',
-                62: 'player',
-                63: 'render_chunk',
-                64: 'render_chunk_index_buffer',
-                65: 'render_chunk_vertex_buffer',
-                66: 'rendering',
-                67: 'rendering_bgfx_init',
-                68: 'rendering_bgfx_start_frame',
-                69: 'rendering_block_tessellator',
-                70: 'rendering_end_frame',
-                71: 'rendering_graphics_tasks_init',
-                72: 'rendering_library',
-                73: 'rendering_polygon_operator_pool',
-                74: 'rendering_pbr_texture_data',
-                75: 'rendering_render_registry',
-                76: 'rendering_setup',
-                77: 'rendering_vertices',
-                78: 'request_log',
-                79: 'resource_packs',
-                80: 'sound',
-                81: 'sub_chunk_biome_data',
-                82: 'sub_chunk_block_data',
-                83: 'sub_chunk_light_data',
-                84: 'textures',
-                85: 'weather_renderer',
-                86: 'world_generator',
-                87: 'tasks',
-                88: 'test',
-                89: 'test_load_test_tags',
-                90: 'scripting',
-                91: 'scripting_runtime',
-                92: 'scripting_context',
-                93: 'scripting_context_bindings_mc',
-                94: 'scripting_context_bindings_gt',
-                95: 'scripting_context_run',
-                96: 'data_driven_ui',
-                97: 'data_driven_ui_defs',
-                98: 'gameface',
-                99: 'gameface_system',
-                100: 'gameface_dom',
-                101: 'gameface_css',
-                102: 'gameface_display',
-                103: 'gameface_temp_allocator',
-                104: 'gameface_pool_allocator',
-                105: 'gameface_dump',
-                106: 'gameface_media',
-                107: 'gameface_json',
-                108: 'gameface_script_engine',
-                109: 'gameface_script',
-                110: 'gameface_layout',
-                111: 'vr',
+                58: 'persona_characters',
+                59: 'persona_skin_packs',
+                60: 'persona_repo',
+                61: 'player',
+                62: 'render_chunk',
+                63: 'render_chunk_index_buffer',
+                64: 'render_chunk_vertex_buffer',
+                65: 'rendering',
+                66: 'rendering_bgfx_init',
+                67: 'rendering_bgfx_start_frame',
+                68: 'rendering_block_tessellator',
+                69: 'rendering_end_frame',
+                70: 'rendering_graphics_tasks_init',
+                71: 'rendering_library',
+                72: 'rendering_polygon_operator_pool',
+                73: 'rendering_pbr_texture_data',
+                74: 'rendering_render_registry',
+                75: 'rendering_setup',
+                76: 'rendering_vertices',
+                77: 'request_log',
+                78: 'resource_packs',
+                79: 'sound',
+                80: 'sub_chunk_biome_data',
+                81: 'sub_chunk_block_data',
+                82: 'sub_chunk_light_data',
+                83: 'textures',
+                84: 'weather_renderer',
+                85: 'world_generator',
+                86: 'tasks',
+                87: 'test',
+                88: 'test_load_test_tags',
+                89: 'scripting',
+                90: 'scripting_runtime',
+                91: 'scripting_context',
+                92: 'scripting_context_bindings_mc',
+                93: 'scripting_context_bindings_gt',
+                94: 'scripting_context_run',
+                95: 'data_driven_ui',
+                96: 'data_driven_ui_defs',
+                97: 'gameface',
+                98: 'gameface_system',
+                99: 'gameface_dom',
+                100: 'gameface_css',
+                101: 'gameface_display',
+                102: 'gameface_temp_allocator',
+                103: 'gameface_pool_allocator',
+                104: 'gameface_dump',
+                105: 'gameface_media',
+                106: 'gameface_json',
+                107: 'gameface_script_engine',
+                108: 'gameface_script',
+                109: 'gameface_layout',
+                110: 'vr',
               },
             },
           ],
@@ -5046,13 +5115,7 @@ export default {
       [
         {
           name: 'cells',
-          type: [
-            'array',
-            {
-              countType: 'varint',
-              type: 'VoxelCells',
-            },
-          ],
+          type: 'VoxelCells',
         },
         {
           name: 'x_coordinates',
@@ -5338,21 +5401,34 @@ export default {
           119: 'realms_timeline_required',
           120: 'guest_withough_host',
           121: 'failed_to_join_experience',
-          122: 'host_signed_out',
-          123: 'script_watchdog_exception',
-          124: 'script_memory_limit_exceeded',
-          125: 'storage_low_during_gameplay',
-          126: 'storage_full_during_gameplay',
-          127: 'level_storage_corruption',
-          128: 'edition_mismatch_vanilla_to_edu',
-          129: 'edition_mismatch_edu_to_vanilla',
-          130: 'editor_mismatch_editor_to_vanilla',
-          131: 'editor_mismatch_vanilla_to_editor',
-          132: 'deny_listed',
-          133: 'nonce_missing',
-          134: 'nonce_not_found',
-          135: 'nonce_expired',
-          136: 'nonce_not_valid',
+          122: 'nethernet_data_channel_closed',
+          123: 'discovery_environment_mismatch',
+          124: 'host_without_keys',
+          125: 'host_signed_out',
+          126: 'script_watchdog_exception',
+          127: 'script_memory_limit_exceeded',
+          128: 'storage_low_during_gameplay',
+          129: 'storage_full_during_gameplay',
+          130: 'level_storage_corruption',
+          131: 'edition_mismatch_vanilla_to_edu',
+          132: 'edition_mismatch_edu_to_vanilla',
+          133: 'editor_mismatch_editor_to_vanilla',
+          134: 'editor_mismatch_vanilla_to_editor',
+          135: 'deny_listed',
+          136: 'nonce_missing',
+          137: 'nonce_not_found',
+          138: 'nonce_expired',
+          139: 'nonce_not_valid',
+          140: 'host_disconnected',
+          141: 'editor_join_intent_policy_failure',
+          142: 'nethernet_identity_not_allowed',
+          143: 'invalid_name',
+          144: 'expired_token',
+          145: 'host_accepts_no_type_of_auth',
+          146: 'not_authenticated_fast_fail',
+          147: 'editor_not_allowed',
+          148: 'missing_structure_data',
+          149: 'unsupported_transport',
         },
       },
     ],
@@ -6804,6 +6880,31 @@ export default {
           name: 'noise_transition',
           type: 'bool',
         },
+        {
+          name: 'noise_alignment',
+          type: 'NoiseAlignment',
+        },
+      ],
+    ],
+    NoiseAlignment: [
+      'container',
+      [
+        {
+          name: 'type',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'min_local_transition_end',
+              },
+            },
+          ],
+        },
+        {
+          name: 'value',
+          type: 'varint',
+        },
       ],
     ],
     AttributeLayerData: [
@@ -6858,6 +6959,14 @@ export default {
         {
           name: 'percent_of_total',
           type: 'u8',
+        },
+        {
+          name: 'position',
+          type: 'vec3f',
+        },
+        {
+          name: 'dimension',
+          type: 'string',
         },
       ],
     ],
@@ -7106,6 +7215,10 @@ export default {
           ],
         },
         {
+          name: 'line_gap_height',
+          type: 'lf32',
+        },
+        {
           name: 'depth_test',
           type: 'bool',
         },
@@ -7293,6 +7406,46 @@ export default {
                 ],
               },
               default: 'void',
+            },
+          ],
+        },
+      ],
+    ],
+    FurnaceOptions: [
+      'container',
+      [
+        {
+          name: 'left_tab',
+          type: [
+            'mapper',
+            {
+              type: 'zigzag32',
+              mappings: {
+                0: 'none',
+                1: 'recipe_food',
+                2: 'recipe_items',
+                3: 'recipe_blocks',
+                4: 'recipe_search',
+                5: 'inventory',
+              },
+            },
+          ],
+        },
+        {
+          name: 'filtering',
+          type: 'bool',
+        },
+        {
+          name: 'layout',
+          type: [
+            'mapper',
+            {
+              type: 'zigzag32',
+              mappings: {
+                0: 'none',
+                1: 'inventory_only',
+                2: 'default',
+              },
             },
           ],
         },
@@ -7565,6 +7718,8 @@ export default {
                 348: 'clientbound_update_sound_data',
                 349: 'send_party_destination_cookie',
                 350: 'party_destination_cookie_response',
+                351: 'set_player_furnace_options',
+                352: 'record_started',
               },
             },
           ],
@@ -7820,6 +7975,8 @@ export default {
                 clientbound_update_sound_data: 'packet_clientbound_update_sound_data',
                 send_party_destination_cookie: 'packet_send_party_destination_cookie',
                 party_destination_cookie_response: 'packet_party_destination_cookie_response',
+                set_player_furnace_options: 'packet_set_player_furnace_options',
+                record_started: 'packet_record_started',
               },
             },
           ],
@@ -10636,10 +10793,6 @@ export default {
           type: 'zigzag64',
         },
         {
-          name: 'player_id',
-          type: 'zigzag64',
-        },
-        {
           name: 'type',
           type: [
             'mapper',
@@ -11256,19 +11409,19 @@ export default {
         },
         {
           name: 'size',
-          type: 'varint',
+          type: 'zigzag32',
         },
         {
           name: 'trade_tier',
-          type: 'varint',
+          type: 'zigzag32',
         },
         {
           name: 'villager_unique_id',
-          type: 'varint64',
+          type: 'zigzag64',
         },
         {
           name: 'entity_unique_id',
-          type: 'varint64',
+          type: 'zigzag64',
         },
         {
           name: 'display_name',
@@ -11284,7 +11437,7 @@ export default {
         },
         {
           name: 'offers',
-          type: 'nbt',
+          type: 'restBuffer',
         },
       ],
     ],
@@ -11443,10 +11596,21 @@ export default {
           type: 'varint',
         },
         {
+          name: 'bypass_listener_range_check',
+          type: 'bool',
+        },
+        {
           name: 'handle',
           type: [
             'option',
             'lu64',
+          ],
+        },
+        {
+          name: 'playback_position_seconds',
+          type: [
+            'option',
+            'lf32',
           ],
         },
       ],
@@ -12236,6 +12400,10 @@ export default {
           name: 'force_completion',
           type: 'bool',
         },
+        {
+          name: 'ticks',
+          type: 'varint64',
+        },
       ],
     ],
     packet_set_scoreboard_identity: [
@@ -13015,14 +13183,11 @@ export default {
         {
           name: 'input_data',
           type: [
-            'option',
-            [
-              'array',
-              {
-                countType: 'varint',
-                type: 'InputData',
-              },
-            ],
+            'array',
+            {
+              countType: 'varint',
+              type: 'InputData',
+            },
           ],
         },
         {
@@ -13089,10 +13254,6 @@ export default {
           type: 'vec3f',
         },
         {
-          name: 'transaction_presence',
-          type: 'bool',
-        },
-        {
           name: 'transaction',
           type: [
             'option',
@@ -13104,27 +13265,16 @@ export default {
                   type: 'TransactionLegacy',
                 },
                 {
-                  name: 'actions_presence',
-                  type: 'bool',
-                },
-                {
                   name: 'actions',
-                  type: [
-                    'option',
-                    'TransactionActions',
-                  ],
+                  type: 'TransactionActions',
                 },
                 {
                   name: 'data',
-                  type: 'TransactionUseItem',
+                  type: 'PlayerAuthInputTransactionUseItem',
                 },
               ],
             ],
           ],
-        },
-        {
-          name: 'item_stack_request_presence',
-          type: 'bool',
         },
         {
           name: 'item_stack_request',
@@ -13132,10 +13282,6 @@ export default {
             'option',
             'ItemStackRequest',
           ],
-        },
-        {
-          name: 'block_action_presence',
-          type: 'bool',
         },
         {
           name: 'block_action',
@@ -13167,19 +13313,11 @@ export default {
           ],
         },
         {
-          name: 'vehicle_rotation_presence',
-          type: 'bool',
-        },
-        {
           name: 'vehicle_rotation',
           type: [
             'option',
             'vec2f',
           ],
-        },
-        {
-          name: 'predicted_vehicle_presence',
-          type: 'bool',
         },
         {
           name: 'predicted_vehicle',
@@ -14060,7 +14198,7 @@ export default {
                 [
                   'array',
                   {
-                    count: 256,
+                    count: 272,
                     type: 'i8',
                   },
                 ],
@@ -14077,7 +14215,7 @@ export default {
                 [
                   'array',
                   {
-                    count: 256,
+                    count: 272,
                     type: 'i8',
                   },
                 ],
@@ -14241,11 +14379,11 @@ export default {
                     type: 'string',
                   },
                   {
-                    name: 'max_height',
+                    name: 'minimum_y',
                     type: 'zigzag32',
                   },
                   {
-                    name: 'min_height',
+                    name: 'height_range',
                     type: 'zigzag32',
                   },
                   {
@@ -14272,6 +14410,10 @@ export default {
                   {
                     name: 'pack_id',
                     type: 'uuid',
+                  },
+                  {
+                    name: 'default_biome',
+                    type: 'string',
                   },
                 ],
               ],
@@ -16000,6 +16142,7 @@ export default {
                       0: 'float',
                       1: 'bool',
                       2: 'string',
+                      3: 'string_list',
                     },
                   },
                 ],
@@ -16014,6 +16157,13 @@ export default {
                       float: 'lf32',
                       bool: 'bool',
                       string: 'string',
+                      string_list: [
+                        'array',
+                        {
+                          countType: 'varint',
+                          type: 'string',
+                        },
+                      ],
                     },
                   },
                 ],
@@ -16653,6 +16803,43 @@ export default {
         {
           name: 'accepted',
           type: 'bool',
+        },
+      ],
+    ],
+    packet_set_player_furnace_options: [
+      'container',
+      [
+        {
+          name: 'furnace_type',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'none',
+                1: 'furnace',
+                2: 'blast_furnace',
+                3: 'smoker',
+              },
+            },
+          ],
+        },
+        {
+          name: 'options',
+          type: 'FurnaceOptions',
+        },
+      ],
+    ],
+    packet_record_started: [
+      'container',
+      [
+        {
+          name: 'position',
+          type: 'BlockCoordinates',
+        },
+        {
+          name: 'handle',
+          type: 'lu64',
         },
       ],
     ],
