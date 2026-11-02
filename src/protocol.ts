@@ -51,8 +51,6 @@ export default {
     bitflags: 'native',
     restBuffer: 'native',
     encapsulated: 'native',
-    maybeIncompleteArray: 'native',
-    optionalOnRemaining: 'native',
     nbt: 'native',
     lnbt: 'native',
     nbtLoop: 'native',
@@ -155,7 +153,7 @@ export default {
     Experiments: [
       'array',
       {
-        countType: 'li32',
+        countType: 'lu32',
         type: 'Experiment',
       },
     ],
@@ -192,6 +190,7 @@ export default {
             {
               type: 'varint',
               mappings: {
+                0: 'null',
                 1: 'bool',
                 2: 'int',
                 3: 'float',
@@ -207,48 +206,7 @@ export default {
               compareTo: 'type',
               fields: {
                 bool: 'bool',
-                int: 'li32',
-                float: 'lf32',
-              },
-            },
-          ],
-        },
-      ],
-    ],
-    GameRuleVarint: [
-      'container',
-      [
-        {
-          name: 'name',
-          type: 'string',
-        },
-        {
-          name: 'editable',
-          type: 'bool',
-        },
-        {
-          name: 'type',
-          type: [
-            'mapper',
-            {
-              type: 'varint',
-              mappings: {
-                1: 'bool',
-                2: 'int',
-                3: 'float',
-              },
-            },
-          ],
-        },
-        {
-          name: 'value',
-          type: [
-            'switch',
-            {
-              compareTo: 'type',
-              fields: {
-                bool: 'bool',
-                int: 'varint',
+                int: 'lu32',
                 float: 'lf32',
               },
             },
@@ -337,10 +295,10 @@ export default {
           type: [
             'mapper',
             {
-              type: 'lu16',
+              type: 'li16',
               mappings: {
-                0: 'false',
-                65535: 'true',
+                '0': 'false',
+                '-1': 'true',
               },
             },
           ],
@@ -375,7 +333,7 @@ export default {
           type: [
             'array',
             {
-              countType: 'li32',
+              countType: 'lu32',
               type: 'ShortString',
             },
           ],
@@ -385,7 +343,7 @@ export default {
           type: [
             'array',
             {
-              countType: 'li32',
+              countType: 'lu32',
               type: 'ShortString',
             },
           ],
@@ -404,10 +362,10 @@ export default {
           type: [
             'mapper',
             {
-              type: 'lu16',
+              type: 'li16',
               mappings: {
-                0: 'false',
-                65535: 'true',
+                '0': 'false',
+                '-1': 'true',
               },
             },
           ],
@@ -442,7 +400,7 @@ export default {
           type: [
             'array',
             {
-              countType: 'li32',
+              countType: 'lu32',
               type: 'ShortString',
             },
           ],
@@ -452,7 +410,7 @@ export default {
           type: [
             'array',
             {
-              countType: 'li32',
+              countType: 'lu32',
               type: 'ShortString',
             },
           ],
@@ -485,6 +443,7 @@ export default {
             {
               compareTo: 'network_id',
               fields: {
+                '0': 'ByteArray',
                 '/ShieldItemID': [
                   'encapsulated',
                   {
@@ -548,6 +507,7 @@ export default {
             {
               compareTo: 'network_id',
               fields: {
+                '0': 'ByteArray',
                 '/ShieldItemID': [
                   'encapsulated',
                   {
@@ -1866,7 +1826,7 @@ export default {
       [
         {
           name: 'recipe_id',
-          type: 'LatinString',
+          type: 'string',
         },
         {
           name: 'width',
@@ -1930,7 +1890,7 @@ export default {
       [
         {
           name: 'recipe_id',
-          type: 'LatinString',
+          type: 'string',
         },
         {
           name: 'input',
@@ -1995,7 +1955,7 @@ export default {
       [
         {
           name: 'recipe_id',
-          type: 'LatinString',
+          type: 'string',
         },
         {
           name: 'template',
@@ -2014,7 +1974,7 @@ export default {
           type: 'ItemLegacy',
         },
         {
-          name: 'tag',
+          name: 'block',
           type: 'string',
         },
         {
@@ -2028,14 +1988,14 @@ export default {
       [
         {
           name: 'recipe_id',
-          type: 'LatinString',
+          type: 'string',
         },
         {
           name: 'template',
           type: 'RecipeIngredient',
         },
         {
-          name: 'input',
+          name: 'base',
           type: 'RecipeIngredient',
         },
         {
@@ -2090,11 +2050,11 @@ export default {
       [
         {
           name: 'width',
-          type: 'li32',
+          type: 'lu32',
         },
         {
           name: 'height',
-          type: 'li32',
+          type: 'lu32',
         },
         {
           name: 'data',
@@ -2105,7 +2065,7 @@ export default {
     PersonaPieceType: [
       'mapper',
       {
-        type: 'li32',
+        type: 'lu32',
         mappings: {
           0: 'unknown',
           1: 'skeleton',
@@ -2135,8 +2095,7 @@ export default {
           25: 'capes',
           26: 'classic_skin',
           27: 'emote',
-          28: 'coco',
-          29: 'unsupported',
+          28: 'unsupported',
         },
       },
     ],
@@ -2149,7 +2108,7 @@ export default {
         },
         {
           name: 'skin_resource_pack',
-          type: 'string',
+          type: 'ByteArray',
         },
         {
           name: 'skin_data',
@@ -2191,15 +2150,15 @@ export default {
         },
         {
           name: 'geometry_data',
-          type: 'string',
+          type: 'ByteArray',
         },
         {
           name: 'geometry_data_version',
-          type: 'string',
+          type: 'ByteArray',
         },
         {
           name: 'animation_data',
-          type: 'string',
+          type: 'ByteArray',
         },
         {
           name: 'cape_id',
@@ -2414,7 +2373,7 @@ export default {
       ],
     ],
     PlayerRecords: [
-      'maybeIncompleteArray',
+      'array',
       {
         countType: 'varint',
         type: 'PlayerRecord',
@@ -2678,10 +2637,19 @@ export default {
         {
           name: 'extra',
           type: [
-            'encapsulated',
+            'switch',
             {
-              lengthType: 'varint',
-              type: 'ItemExtraDataWithoutBlockingTick',
+              compareTo: 'type',
+              fields: {
+                invalid: 'ByteArray',
+              },
+              default: [
+                'encapsulated',
+                {
+                  lengthType: 'varint',
+                  type: 'ItemExtraDataWithoutBlockingTick',
+                },
+              ],
             },
           ],
         },
@@ -3224,31 +3192,13 @@ export default {
                 20: 'village_snowy',
                 21: 'village_taiga',
                 22: 'jungle_temple',
-                23: 'witch_hut =>',
-                24: 'marker_white',
-                25: 'marker_green',
-                26: 'marker_red',
-                27: 'marker_blue',
-                28: 'cross_white',
-                29: 'triangle_red',
-                30: 'square_white',
-                31: 'marker_sign',
-                32: 'marker_pink',
-                33: 'marker_orange',
-                34: 'marker_yellow',
-                35: 'marker_teal',
-                36: 'triangle_green',
-                37: 'small_square_white',
-                38: 'mansion',
-                39: 'monument',
-                40: 'no_draw',
-                41: 'village_desert',
-                42: 'village_plains',
-                43: 'village_savanna',
-                44: 'village_snowy',
-                45: 'village_taiga',
-                46: 'jungle_temple',
-                47: 'witch_hut',
+                23: 'witch_hut',
+                24: 'trial_chambers',
+                25: 'abandoned_camp',
+                26: 'buried_ancient_city',
+                27: 'buried_mineshaft',
+                28: 'desert_pyramid',
+                29: 'warm_ocean_ruins',
               },
             },
           ],
@@ -3271,7 +3221,7 @@ export default {
         },
         {
           name: 'color_abgr',
-          type: 'li32',
+          type: 'i32',
         },
       ],
     ],
@@ -3439,17 +3389,23 @@ export default {
         {
           name: 'items',
           type: [
-            'container',
-            [
-              {
-                name: 'network_id',
-                type: 'zigzag32',
-              },
-              {
-                name: 'count',
-                type: 'zigzag32',
-              },
-            ],
+            'array',
+            {
+              countType: 'varint',
+              type: [
+                'container',
+                [
+                  {
+                    name: 'network_id',
+                    type: 'zigzag32',
+                  },
+                  {
+                    name: 'count',
+                    type: 'zigzag32',
+                  },
+                ],
+              ],
+            },
           ],
         },
       ],
@@ -4756,20 +4712,8 @@ export default {
           type: 'lf32',
         },
         {
-          name: 'has_ease_type',
-          type: 'bool',
-        },
-        {
           name: 'ease_type',
-          type: [
-            'switch',
-            {
-              compareTo: 'has_ease_type',
-              fields: {
-                true: 'string',
-              },
-            },
-          ],
+          type: 'string',
         },
       ],
     ],
@@ -4781,20 +4725,8 @@ export default {
           type: 'lf32',
         },
         {
-          name: 'has_spline_type',
-          type: 'bool',
-        },
-        {
           name: 'spline_type',
-          type: [
-            'switch',
-            {
-              compareTo: 'has_spline_type',
-              fields: {
-                true: 'string',
-              },
-            },
-          ],
+          type: 'u8',
         },
         {
           name: 'curve',
@@ -4828,17 +4760,11 @@ export default {
         },
         {
           name: 'spline_identifier',
-          type: [
-            'option',
-            'string',
-          ],
+          type: 'string',
         },
         {
           name: 'load_from_json',
-          type: [
-            'option',
-            'bool',
-          ],
+          type: 'bool',
         },
       ],
     ],
@@ -4854,20 +4780,8 @@ export default {
           type: 'lf32',
         },
         {
-          name: 'has_ease_type',
-          type: 'bool',
-        },
-        {
           name: 'ease_type',
-          type: [
-            'switch',
-            {
-              compareTo: 'has_ease_type',
-              fields: {
-                true: 'string',
-              },
-            },
-          ],
+          type: 'string',
         },
       ],
     ],
@@ -4884,10 +4798,7 @@ export default {
         },
         {
           name: 'spline_type',
-          type: [
-            'option',
-            'string',
-          ],
+          type: 'string',
         },
         {
           name: 'control_points',
@@ -4905,7 +4816,7 @@ export default {
             'array',
             {
               countType: 'varint',
-              type: 'CameraProgressOption',
+              type: 'CameraSplineProgressKeyFrame',
             },
           ],
         },
@@ -4915,7 +4826,7 @@ export default {
             'array',
             {
               countType: 'varint',
-              type: 'CameraRotationOption',
+              type: 'CameraSplineRotationKeyFrame',
             },
           ],
         },
@@ -5220,20 +5131,6 @@ export default {
     PresenceInfo: [
       'container',
       [
-        {
-          name: 'experience_name',
-          type: [
-            'option',
-            'string',
-          ],
-        },
-        {
-          name: 'world_name',
-          type: [
-            'option',
-            'string',
-          ],
-        },
         {
           name: 'rich_presence_id',
           type: [
@@ -5718,7 +5615,7 @@ export default {
         },
         {
           name: 'first_octave',
-          type: 'lu32',
+          type: 'li32',
         },
         {
           name: 'amplitudes',
@@ -6255,7 +6152,7 @@ export default {
     EaseType: [
       'mapper',
       {
-        type: 'varint',
+        type: 'u8',
         mappings: {
           0: 'Linear',
           1: 'Spring',
@@ -6735,46 +6632,8 @@ export default {
           type: 'li32',
         },
         {
-          name: 'weight_type',
-          type: [
-            'mapper',
-            {
-              type: 'varint',
-              mappings: {
-                0: 'float',
-                1: 'string',
-              },
-            },
-          ],
-        },
-        {
-          anon: true,
-          type: [
-            'switch',
-            {
-              compareTo: 'weight_type',
-              fields: {
-                float: [
-                  'container',
-                  [
-                    {
-                      name: 'float_weight',
-                      type: 'lf32',
-                    },
-                  ],
-                ],
-                string: [
-                  'container',
-                  [
-                    {
-                      name: 'string_weight',
-                      type: 'string',
-                    },
-                  ],
-                ],
-              },
-            },
-          ],
+          name: 'float_weight',
+          type: 'lf32',
         },
         {
           name: 'enabled',
@@ -6936,7 +6795,7 @@ export default {
                     },
                     {
                       name: 'ease_type',
-                      type: 'EaseType',
+                      type: 'EnvironmentEaseType',
                     },
                     {
                       name: 'clock_name',
@@ -6965,7 +6824,7 @@ export default {
                     },
                     {
                       name: 'ease_type',
-                      type: 'EaseType',
+                      type: 'EnvironmentEaseType',
                     },
                     {
                       name: 'clock_name',
@@ -7154,6 +7013,10 @@ export default {
                   3: 'circle',
                   4: 'text',
                   5: 'arrow',
+                  6: 'cylinder',
+                  7: 'pyramid',
+                  8: 'ellipsoid',
+                  9: 'cone',
                 },
               },
             ],
@@ -7198,7 +7061,7 @@ export default {
           name: 'color',
           type: [
             'option',
-            'li32',
+            'i32',
           ],
         },
         {
@@ -7216,18 +7079,42 @@ export default {
           ],
         },
         {
+          name: 'extra_shape_data_type',
+          type: [
+            'mapper',
+            {
+              type: 'varint',
+              mappings: {
+                0: 'last',
+                1: 'arrow',
+                2: 'text',
+                3: 'box',
+                4: 'line',
+                5: 'sphere',
+                6: 'cylinder',
+                7: 'pyramid',
+                8: 'ellipsoid',
+                9: 'cone',
+              },
+            },
+          ],
+        },
+        {
           name: 'extra_shape_data',
           type: [
             'switch',
             {
-              compareTo: 'type',
+              compareTo: 'extra_shape_data_type',
               fields: {
-                line: 'ShapeLine',
-                box: 'ShapeBox',
-                sphere: 'ShapeSphere',
-                circle: 'ShapeCircle',
-                text: 'ShapeText',
                 arrow: 'ShapeArrow',
+                text: 'ShapeText',
+                box: 'ShapeBox',
+                line: 'ShapeLine',
+                sphere: 'ShapeSphere',
+                cylinder: 'ShapeCylinder',
+                pyramid: 'ShapePyramid',
+                ellipsoid: 'ShapeEllipsoid',
+                cone: 'ShapeCone',
               },
               default: 'void',
             },
@@ -7258,10 +7145,7 @@ export default {
       [
         {
           name: 'segment_count',
-          type: [
-            'option',
-            'u8',
-          ],
+          type: 'u8',
         },
       ],
     ],
@@ -7270,10 +7154,7 @@ export default {
       [
         {
           name: 'segment_count',
-          type: [
-            'option',
-            'u8',
-          ],
+          type: 'u8',
         },
       ],
     ],
@@ -7286,38 +7167,30 @@ export default {
         },
         {
           name: 'use_rotation',
-          type: [
-            'option',
-            'bool',
-          ],
+          type: 'bool',
         },
         {
           name: 'background_color',
           type: [
             'option',
-            'li32',
+            'i32',
           ],
+        },
+        {
+          name: 'line_gap_height',
+          type: 'lf32',
         },
         {
           name: 'depth_test',
-          type: [
-            'option',
-            'bool',
-          ],
+          type: 'bool',
         },
         {
           name: 'show_backface',
-          type: [
-            'option',
-            'bool',
-          ],
+          type: 'bool',
         },
         {
           name: 'show_backface_text',
-          type: [
-            'option',
-            'bool',
-          ],
+          type: 'bool',
         },
       ],
     ],
@@ -7326,15 +7199,31 @@ export default {
       [
         {
           name: 'end_location',
-          type: 'vec3f',
+          type: [
+            'option',
+            'vec3f',
+          ],
         },
         {
           name: 'arrow_head_length',
-          type: 'lf32',
+          type: [
+            'option',
+            'lf32',
+          ],
         },
         {
           name: 'arrow_head_radius',
-          type: 'lf32',
+          type: [
+            'option',
+            'lf32',
+          ],
+        },
+        {
+          name: 'segments',
+          type: [
+            'option',
+            'u8',
+          ],
         },
       ],
     ],
@@ -7351,25 +7240,25 @@ export default {
         },
       ],
     ],
-    HeightMap: [
-      'array',
-      {
-        count: 16,
-        type: [
-          'array',
-          {
-            countType: 'varint',
-            type: 'i8',
-          },
-        ],
-      },
-    ],
     FurnaceOptions: [
       'container',
       [
         {
-          name: 'left_furnace_tab',
-          type: 'zigzag32',
+          name: 'left_tab',
+          type: [
+            'mapper',
+            {
+              type: 'zigzag32',
+              mappings: {
+                0: 'none',
+                1: 'recipe_food',
+                2: 'recipe_items',
+                3: 'recipe_blocks',
+                4: 'recipe_search',
+                5: 'inventory',
+              },
+            },
+          ],
         },
         {
           name: 'filtering',
@@ -7377,9 +7266,489 @@ export default {
         },
         {
           name: 'layout',
-          type: 'zigzag32',
+          type: [
+            'mapper',
+            {
+              type: 'zigzag32',
+              mappings: {
+                0: 'none',
+                1: 'inventory_only',
+                2: 'default',
+              },
+            },
+          ],
         },
       ],
+    ],
+    PlayerAuthInputTransactionUseItem: [
+      'container',
+      [
+        {
+          name: 'action_type',
+          type: [
+            'mapper',
+            {
+              type: 'zigzag32',
+              mappings: {
+                0: 'click_block',
+                1: 'click_air',
+                2: 'break_block',
+                3: 'attack',
+              },
+            },
+          ],
+        },
+        {
+          name: 'trigger_type',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'unknown',
+                1: 'player_input',
+                2: 'simulation_tick',
+              },
+            },
+          ],
+        },
+        {
+          name: 'block_position',
+          type: 'BlockCoordinates',
+        },
+        {
+          name: 'face',
+          type: 'u8',
+        },
+        {
+          name: 'hotbar_slot',
+          type: 'zigzag32',
+        },
+        {
+          name: 'held_item',
+          type: 'ItemV4',
+        },
+        {
+          name: 'player_pos',
+          type: 'vec3f',
+        },
+        {
+          name: 'click_pos',
+          type: 'vec3f',
+        },
+        {
+          name: 'block_runtime_id',
+          type: 'varint',
+        },
+        {
+          name: 'client_prediction',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'failure',
+                1: 'success',
+              },
+            },
+          ],
+        },
+        {
+          name: 'client_cooldown_state',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'off',
+                1: 'on',
+              },
+            },
+          ],
+        },
+      ],
+    ],
+    WindowTypeUnsigned: [
+      'mapper',
+      {
+        type: 'u8',
+        mappings: {
+          0: 'container',
+          1: 'workbench',
+          2: 'furnace',
+          3: 'enchantment',
+          4: 'brewing_stand',
+          5: 'anvil',
+          6: 'dispenser',
+          7: 'dropper',
+          8: 'hopper',
+          9: 'cauldron',
+          10: 'minecart_chest',
+          11: 'minecart_hopper',
+          12: 'horse',
+          13: 'beacon',
+          14: 'structure_editor',
+          15: 'trading',
+          16: 'command_block',
+          17: 'jukebox',
+          18: 'armor',
+          19: 'hand',
+          20: 'compound_creator',
+          21: 'element_constructor',
+          22: 'material_reducer',
+          23: 'lab_table',
+          24: 'loom',
+          25: 'lectern',
+          26: 'grindstone',
+          27: 'blast_furnace',
+          28: 'smoker',
+          29: 'stonecutter',
+          30: 'cartography',
+          31: 'hud',
+          32: 'jigsaw_editor',
+          33: 'smithing_table',
+          34: 'chest_boat',
+          35: 'decorated_pot',
+          36: 'crafter',
+        },
+      },
+    ],
+    NoiseAlignment: [
+      'container',
+      [
+        {
+          name: 'type',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'min_local_transition_end',
+              },
+            },
+          ],
+        },
+        {
+          name: 'value',
+          type: 'varint',
+        },
+      ],
+    ],
+    ShapeCylinder: [
+      'container',
+      [
+        {
+          name: 'radius_x',
+          type: 'vec2f',
+        },
+        {
+          name: 'radius_z',
+          type: 'vec2f',
+        },
+        {
+          name: 'height',
+          type: 'lf32',
+        },
+        {
+          name: 'num_segments',
+          type: 'u8',
+        },
+      ],
+    ],
+    ShapePyramid: [
+      'container',
+      [
+        {
+          name: 'width',
+          type: 'lf32',
+        },
+        {
+          name: 'depth',
+          type: [
+            'option',
+            'lf32',
+          ],
+        },
+        {
+          name: 'height',
+          type: 'lf32',
+        },
+      ],
+    ],
+    ShapeEllipsoid: [
+      'container',
+      [
+        {
+          name: 'radii',
+          type: 'vec3f',
+        },
+        {
+          name: 'segments_per_axis',
+          type: 'u8',
+        },
+      ],
+    ],
+    ShapeCone: [
+      'container',
+      [
+        {
+          name: 'radii',
+          type: 'vec2f',
+        },
+        {
+          name: 'height',
+          type: 'lf32',
+        },
+        {
+          name: 'num_segments',
+          type: 'u8',
+        },
+      ],
+    ],
+    SoundDataUpdate: [
+      'container',
+      [
+        {
+          name: 'type',
+          type: [
+            'mapper',
+            {
+              type: 'u8',
+              mappings: {
+                0: 'stop',
+                1: 'set_volume',
+                2: 'set_pitch',
+                3: 'fade',
+                4: 'seek_to',
+                5: 'pause',
+                6: 'resume',
+              },
+            },
+          ],
+        },
+        {
+          name: 'data',
+          type: [
+            'switch',
+            {
+              compareTo: 'type',
+              fields: {
+                set_volume: [
+                  'container',
+                  [
+                    {
+                      name: 'volume',
+                      type: 'lf32',
+                    },
+                  ],
+                ],
+                set_pitch: [
+                  'container',
+                  [
+                    {
+                      name: 'pitch',
+                      type: 'lf32',
+                    },
+                  ],
+                ],
+                fade: [
+                  'container',
+                  [
+                    {
+                      name: 'duration',
+                      type: 'lf32',
+                    },
+                    {
+                      name: 'target_volume',
+                      type: 'lf32',
+                    },
+                  ],
+                ],
+                seek_to: [
+                  'container',
+                  [
+                    {
+                      name: 'seconds',
+                      type: 'lf32',
+                    },
+                  ],
+                ],
+              },
+              default: 'void',
+            },
+          ],
+        },
+      ],
+    ],
+    SubChunkEntry: [
+      'array',
+      {
+        countType: 'varint',
+        type: [
+          'container',
+          [
+            {
+              name: 'dx',
+              type: 'i8',
+            },
+            {
+              name: 'dy',
+              type: 'i8',
+            },
+            {
+              name: 'dz',
+              type: 'i8',
+            },
+            {
+              name: 'result',
+              type: [
+                'mapper',
+                {
+                  type: 'u8',
+                  mappings: {
+                    0: 'undefined',
+                    1: 'success',
+                    2: 'chunk_not_found',
+                    3: 'invalid_dimension',
+                    4: 'player_not_found',
+                    5: 'y_index_out_of_bounds',
+                    6: 'success_all_air',
+                  },
+                },
+              ],
+            },
+            {
+              name: 'payload',
+              type: [
+                'option',
+                'ByteArray',
+              ],
+            },
+            {
+              name: 'heightmap_type',
+              type: 'HeightMapDataType',
+            },
+            {
+              name: 'heightmap',
+              type: [
+                'option',
+                [
+                  'array',
+                  {
+                    count: 272,
+                    type: 'i8',
+                  },
+                ],
+              ],
+            },
+            {
+              name: 'render_heightmap_type',
+              type: 'HeightMapDataType',
+            },
+            {
+              name: 'render_heightmap',
+              type: [
+                'option',
+                [
+                  'array',
+                  {
+                    count: 272,
+                    type: 'i8',
+                  },
+                ],
+              ],
+            },
+            {
+              name: 'blob_id',
+              type: [
+                'option',
+                'lu64',
+              ],
+            },
+          ],
+        ],
+      },
+    ],
+    CameraSplineProgressKeyFrame: [
+      'container',
+      [
+        {
+          name: 'value',
+          type: 'lf32',
+        },
+        {
+          name: 'time',
+          type: 'lf32',
+        },
+        {
+          name: 'ease_type',
+          type: [
+            'option',
+            'string',
+          ],
+        },
+      ],
+    ],
+    CameraSplineRotationKeyFrame: [
+      'container',
+      [
+        {
+          name: 'value',
+          type: 'vec3f',
+        },
+        {
+          name: 'time',
+          type: 'lf32',
+        },
+        {
+          name: 'ease_type',
+          type: [
+            'option',
+            'string',
+          ],
+        },
+      ],
+    ],
+    EnvironmentEaseType: [
+      'mapper',
+      {
+        type: 'zigzag32',
+        mappings: {
+          0: 'Linear',
+          1: 'Spring',
+          2: 'InQuad',
+          3: 'OutQuad',
+          4: 'InOutQuad',
+          5: 'InCubic',
+          6: 'OutCubic',
+          7: 'InOutCubic',
+          8: 'InQuart',
+          9: 'OutQuart',
+          10: 'InOutQuart',
+          11: 'InQuint',
+          12: 'OutQuint',
+          13: 'InOutQuint',
+          14: 'InSine',
+          15: 'OutSine',
+          16: 'InOutSine',
+          17: 'InExpo',
+          18: 'OutExpo',
+          19: 'InOutExpo',
+          20: 'InCirc',
+          21: 'OutCirc',
+          22: 'InOutCirc',
+          23: 'InBounce',
+          24: 'OutBounce',
+          25: 'InOutBounce',
+          26: 'InBack',
+          27: 'OutBack',
+          28: 'InOutBack',
+          29: 'InElastic',
+          30: 'OutElastic',
+          31: 'InOutElastic',
+          32: 'InverseLerp',
+        },
+      },
     ],
     mcpe_packet: [
       'container',
@@ -7549,7 +7918,7 @@ export default {
                 161: 'correct_player_move_prediction',
                 162: 'item_registry',
                 163: 'filter_text_packet',
-                164: 'primitive_shapes',
+                164: 'clientbound_debug_renderer',
                 165: 'sync_entity_property',
                 166: 'add_volume_entity',
                 167: 'remove_volume_entity',
@@ -7612,7 +7981,7 @@ export default {
                 325: 'player_update_entity_overrides',
                 326: 'player_location',
                 327: 'clientbound_controls_scheme',
-                328: 'server_script_debug_drawer',
+                328: 'primitive_shapes',
                 329: 'serverbound_pack_setting_change',
                 330: 'clientbound_data_store',
                 331: 'graphics_override_parameter',
@@ -7877,7 +8246,6 @@ export default {
                 player_update_entity_overrides: 'packet_player_update_entity_overrides',
                 player_location: 'packet_player_location',
                 clientbound_controls_scheme: 'packet_clientbound_controls_scheme',
-                server_script_debug_drawer: 'packet_server_script_debug_drawer',
                 serverbound_pack_setting_change: 'packet_serverbound_pack_setting_change',
                 clientbound_data_store: 'packet_clientbound_data_store',
                 graphics_override_parameter: 'packet_graphics_override_parameter',
@@ -7910,6 +8278,7 @@ export default {
                 serverbound_cursor_item_drag: 'packet_serverbound_cursor_item_drag',
                 clientbound_play_audio_content: 'packet_clientbound_play_audio_content',
                 serverbound_register_audio_content: 'packet_serverbound_register_audio_content',
+                clientbound_debug_renderer: 'packet_clientbound_debug_renderer',
               },
             },
           ],
@@ -8397,7 +8766,7 @@ export default {
         },
         {
           name: 'seed',
-          type: 'lu64',
+          type: 'li64',
         },
         {
           name: 'biome_type',
@@ -8473,7 +8842,7 @@ export default {
           type: [
             'mapper',
             {
-              type: 'u8',
+              type: 'i8',
               mappings: {
                 0: 'legacy',
                 1: 'editor_achievements',
@@ -8519,11 +8888,11 @@ export default {
         },
         {
           name: 'xbox_live_broadcast_mode',
-          type: 'varint',
+          type: 'zigzag32',
         },
         {
           name: 'platform_broadcast_mode',
-          type: 'varint',
+          type: 'zigzag32',
         },
         {
           name: 'enable_commands',
@@ -8629,7 +8998,10 @@ export default {
         },
         {
           name: 'experimental_gameplay_override',
-          type: 'bool',
+          type: [
+            'option',
+            'bool',
+          ],
         },
         {
           name: 'chat_restriction_level',
@@ -8857,12 +9229,7 @@ export default {
         },
         {
           name: 'device_os',
-          type: [
-            'optionalOnRemaining',
-            {
-              type: 'DeviceOS',
-            },
-          ],
+          type: 'DeviceOS',
         },
       ],
     ],
@@ -8981,7 +9348,7 @@ export default {
         },
         {
           name: 'target',
-          type: 'varint',
+          type: 'varint64',
         },
       ],
     ],
@@ -9011,7 +9378,7 @@ export default {
       [
         {
           name: 'runtime_id',
-          type: 'varint',
+          type: 'varint64',
         },
         {
           name: 'position',
@@ -9050,7 +9417,7 @@ export default {
         },
         {
           name: 'ridden_runtime_id',
-          type: 'varint',
+          type: 'varint64',
         },
         {
           name: 'teleport',
@@ -9340,79 +9707,102 @@ export default {
                 16390: 'add_particle_explode',
                 16391: 'add_particle_evaporation',
                 16392: 'add_particle_flame',
-                16393: 'add_particle_candle_flame',
-                16394: 'add_particle_lava',
-                16395: 'add_particle_large_smoke',
-                16396: 'add_particle_redstone',
-                16397: 'add_particle_rising_red_dust',
-                16398: 'add_particle_item_break',
-                16399: 'add_particle_snowball_poof',
-                16400: 'add_particle_huge_explode',
-                16401: 'add_particle_huge_explode_seed',
-                16402: 'add_particle_mob_flame',
-                16403: 'add_particle_heart',
-                16404: 'add_particle_terrain',
-                16405: 'add_particle_town_aura',
-                16406: 'add_particle_portal',
-                16408: 'add_particle_water_splash',
-                16409: 'add_particle_water_splash_manual',
-                16410: 'add_particle_water_wake',
-                16411: 'add_particle_drip_water',
-                16412: 'add_particle_drip_lava',
-                16413: 'add_particle_drip_honey',
-                16414: 'add_particle_stalactite_drip_water',
-                16415: 'add_particle_stalactite_drip_lava',
-                16416: 'add_particle_falling_dust',
-                16417: 'add_particle_mob_spell',
-                16418: 'add_particle_mob_spell_ambient',
-                16419: 'add_particle_mob_spell_instantaneous',
-                16420: 'add_particle_ink',
-                16421: 'add_particle_slime',
-                16422: 'add_particle_rain_splash',
-                16423: 'add_particle_villager_angry',
-                16424: 'add_particle_villager_happy',
-                16425: 'add_particle_enchantment_table',
-                16426: 'add_particle_tracking_emitter',
-                16427: 'add_particle_note',
-                16428: 'add_particle_witch_spell',
-                16429: 'add_particle_carrot',
-                16430: 'add_particle_mob_appearance',
-                16431: 'add_particle_end_rod',
-                16432: 'add_particle_dragons_breath',
-                16433: 'add_particle_spit',
-                16434: 'add_particle_totem',
-                16435: 'add_particle_food',
-                16436: 'add_particle_fireworks_starter',
-                16437: 'add_particle_fireworks_spark',
-                16438: 'add_particle_fireworks_overlay',
-                16439: 'add_particle_balloon_gas',
-                16440: 'add_particle_colored_flame',
-                16441: 'add_particle_sparkler',
-                16442: 'add_particle_conduit',
-                16443: 'add_particle_bubble_column_up',
-                16444: 'add_particle_bubble_column_down',
-                16445: 'add_particle_sneeze',
-                16446: 'add_particle_shulker_bullet',
-                16447: 'add_particle_bleach',
-                16448: 'add_particle_dragon_destroy_block',
-                16449: 'add_particle_mycelium_dust',
-                16450: 'add_particle_falling_red_dust',
-                16451: 'add_particle_campfire_smoke',
-                16452: 'add_particle_tall_campfire_smoke',
-                16453: 'add_particle_dragon_breath_fire',
-                16454: 'add_particle_dragon_breath_trail',
-                16455: 'add_particle_blue_flame',
-                16456: 'add_particle_soul',
-                16457: 'add_particle_obsidian_tear',
-                16458: 'add_particle_portal_reverse',
-                16459: 'add_particle_snowflake',
-                16460: 'add_particle_vibration_signal',
-                16461: 'add_particle_sculk_sensor_redstone',
-                16462: 'add_particle_spore_blossom_shower',
-                16463: 'add_particle_spore_blossom_ambient',
-                16464: 'add_particle_wax',
-                16465: 'add_particle_electric_spark',
-                16489: 'add_particle_ice_ball_break',
+                16393: 'add_particle_lava',
+                16394: 'add_particle_large_smoke',
+                16395: 'add_particle_redstone',
+                16396: 'add_particle_rising_red_dust',
+                16397: 'add_particle_item_break',
+                16398: 'add_particle_snowball_poof',
+                16399: 'add_particle_huge_explode',
+                16400: 'add_particle_huge_explode_seed',
+                16401: 'add_particle_mob_flame',
+                16402: 'add_particle_heart',
+                16403: 'add_particle_terrain',
+                16404: 'add_particle_town_aura',
+                16405: 'add_particle_portal',
+                16406: 'add_particle_mob_portal',
+                16407: 'add_particle_water_splash',
+                16408: 'add_particle_water_splash_manual',
+                16409: 'add_particle_water_wake',
+                16410: 'add_particle_drip_water',
+                16411: 'add_particle_drip_lava',
+                16412: 'add_particle_drip_honey',
+                16413: 'add_particle_stalactite_drip_water',
+                16414: 'add_particle_stalactite_drip_lava',
+                16415: 'add_particle_falling_dust',
+                16416: 'add_particle_mob_spell',
+                16417: 'add_particle_mob_spell_ambient',
+                16418: 'add_particle_mob_spell_instantaneous',
+                16419: 'add_particle_ink',
+                16420: 'add_particle_slime',
+                16421: 'add_particle_rain_splash',
+                16422: 'add_particle_villager_angry',
+                16423: 'add_particle_villager_happy',
+                16424: 'add_particle_enchantment_table',
+                16425: 'add_particle_tracking_emitter',
+                16426: 'add_particle_note',
+                16427: 'add_particle_witch_spell',
+                16428: 'add_particle_carrot',
+                16429: 'add_particle_mob_appearance',
+                16430: 'add_particle_end_rod',
+                16431: 'add_particle_dragons_breath',
+                16432: 'add_particle_spit',
+                16433: 'add_particle_totem',
+                16434: 'add_particle_food',
+                16435: 'add_particle_fireworks_starter',
+                16436: 'add_particle_fireworks_spark',
+                16437: 'add_particle_fireworks_overlay',
+                16438: 'add_particle_balloon_gas',
+                16439: 'add_particle_colored_flame',
+                16440: 'add_particle_sparkler',
+                16441: 'add_particle_conduit',
+                16442: 'add_particle_bubble_column_up',
+                16443: 'add_particle_bubble_column_down',
+                16444: 'add_particle_sneeze',
+                16445: 'add_particle_shulker_bullet',
+                16446: 'add_particle_bleach',
+                16447: 'add_particle_dragon_destroy_block',
+                16448: 'add_particle_mycelium_dust',
+                16449: 'add_particle_falling_red_dust',
+                16450: 'add_particle_campfire_smoke',
+                16451: 'add_particle_tall_campfire_smoke',
+                16452: 'add_particle_dragon_breath_fire',
+                16453: 'add_particle_dragon_breath_trail',
+                16454: 'add_particle_blue_flame',
+                16455: 'add_particle_soul',
+                16456: 'add_particle_obsidian_tear',
+                16457: 'add_particle_portal_reverse',
+                16458: 'add_particle_snowflake',
+                16459: 'add_particle_vibration_signal',
+                16460: 'add_particle_sculk_sensor_redstone',
+                16461: 'add_particle_spore_blossom_shower',
+                16462: 'add_particle_spore_blossom_ambient',
+                16463: 'add_particle_wax',
+                16464: 'add_particle_electric_spark',
+                16465: 'add_particle_candle_flame',
+                16466: 'add_particle_shriek',
+                16467: 'add_particle_sculk_soul',
+                16468: 'add_particle_sonic_explosion',
+                16469: 'add_particle_brush_dust',
+                16470: 'add_particle_cherry_leaves',
+                16471: 'add_particle_dust_plume',
+                16472: 'add_particle_white_smoke',
+                16473: 'add_particle_wind_explosion',
+                16474: 'add_particle_breeze_wind_explosion',
+                16475: 'add_particle_vault_connection',
+                16476: 'add_particle_wolf_armor_break',
+                16477: 'add_particle_ominous_item_spawner',
+                16478: 'add_particle_creaking_crumble',
+                16479: 'add_particle_pale_oak_leaves',
+                16480: 'add_particle_eyeblossom_open',
+                16481: 'add_particle_eyeblossom_close',
+                16482: 'add_particle_green_flame',
+                16483: 'add_particle_pause_mob_growth',
+                16484: 'add_particle_reset_mob_growth',
+                16485: 'add_particle_sulfur_cube',
+                16486: 'add_particle_orange_poplar_leaves',
+                16487: 'add_particle_red_poplar_leaves',
+                16488: 'add_particle_yellow_poplar_leaves',
               },
             },
           ],
@@ -9742,7 +10132,7 @@ export default {
       [
         {
           name: 'runtime_entity_id',
-          type: 'lu64',
+          type: 'li64',
         },
         {
           name: 'selected_slot',
@@ -9792,7 +10182,7 @@ export default {
         },
         {
           name: 'armor_slots',
-          type: 'zigzag64',
+          type: 'varint64',
         },
       ],
     ],
@@ -10588,7 +10978,7 @@ export default {
           name: 'scale',
           type: [
             'option',
-            'i8',
+            'u8',
           ],
         },
         {
@@ -10653,7 +11043,7 @@ export default {
               'array',
               {
                 countType: 'varint',
-                type: 'li32',
+                type: 'i32',
               },
             ],
           ],
@@ -11361,23 +11751,23 @@ export default {
         },
         {
           name: 'window_type',
-          type: 'WindowType',
+          type: 'WindowTypeUnsigned',
         },
         {
           name: 'size',
-          type: 'varint',
+          type: 'zigzag32',
         },
         {
           name: 'trade_tier',
-          type: 'varint',
+          type: 'zigzag32',
         },
         {
           name: 'villager_unique_id',
-          type: 'varint64',
+          type: 'zigzag64',
         },
         {
           name: 'entity_unique_id',
-          type: 'varint64',
+          type: 'zigzag64',
         },
         {
           name: 'display_name',
@@ -11393,7 +11783,7 @@ export default {
         },
         {
           name: 'offers',
-          type: 'nbt',
+          type: 'restBuffer',
         },
       ],
     ],
@@ -11406,11 +11796,11 @@ export default {
         },
         {
           name: 'window_type',
-          type: 'WindowType',
+          type: 'WindowTypeUnsigned',
         },
         {
           name: 'size',
-          type: 'u8',
+          type: 'zigzag32',
         },
         {
           name: 'entity_id',
@@ -11418,7 +11808,7 @@ export default {
         },
         {
           name: 'inventory',
-          type: 'nbt',
+          type: 'restBuffer',
         },
       ],
     ],
@@ -11663,7 +12053,10 @@ export default {
         },
         {
           name: 'filtered_structure_name',
-          type: 'string',
+          type: [
+            'option',
+            'string',
+          ],
         },
         {
           name: 'data_field',
@@ -12323,21 +12716,21 @@ export default {
           name: 'rot_x',
           type: [
             'option',
-            'u8',
+            'byterot',
           ],
         },
         {
           name: 'rot_y',
           type: [
             'option',
-            'u8',
+            'byterot',
           ],
         },
         {
           name: 'rot_z',
           type: [
             'option',
-            'u8',
+            'byterot',
           ],
         },
         {
@@ -12370,7 +12763,7 @@ export default {
           type: [
             'mapper',
             {
-              type: 'i8',
+              type: 'u8',
               mappings: {
                 0: 'register_identity',
                 1: 'clear_identity',
@@ -12943,10 +13336,6 @@ export default {
                   'container',
                   [
                     {
-                      name: 'has',
-                      type: 'bool',
-                    },
-                    {
                       name: 'url',
                       type: 'string',
                     },
@@ -13225,7 +13614,7 @@ export default {
                 },
                 {
                   name: 'data',
-                  type: 'TransactionUseItem',
+                  type: 'PlayerAuthInputTransactionUseItem',
                 },
               ],
             ],
@@ -13864,7 +14253,7 @@ export default {
       [
         {
           name: 'runtime_id',
-          type: 'varint64',
+          type: 'varint',
         },
         {
           name: 'nbt',
@@ -13909,7 +14298,11 @@ export default {
       [
         {
           name: 'entity_id',
-          type: 'varint64',
+          type: 'varint',
+        },
+        {
+          name: 'dimension',
+          type: 'zigzag32',
         },
       ],
     ],
@@ -14054,83 +14447,6 @@ export default {
           3: 'too_low',
           4: 'all_copied',
         },
-      },
-    ],
-    SubChunkEntry: [
-      'array',
-      {
-        countType: 'varint',
-        type: [
-          'container',
-          [
-            {
-              name: 'dx',
-              type: 'i8',
-            },
-            {
-              name: 'dy',
-              type: 'i8',
-            },
-            {
-              name: 'dz',
-              type: 'i8',
-            },
-            {
-              name: 'result',
-              type: [
-                'mapper',
-                {
-                  type: 'u8',
-                  mappings: {
-                    0: 'undefined',
-                    1: 'success',
-                    2: 'chunk_not_found',
-                    3: 'invalid_dimension',
-                    4: 'player_not_found',
-                    5: 'y_index_out_of_bounds',
-                    6: 'success_all_air',
-                  },
-                },
-              ],
-            },
-            {
-              name: 'payload',
-              type: [
-                'option',
-                'ByteArray',
-              ],
-            },
-            {
-              name: 'heightmap_type',
-              type: 'HeightMapDataType',
-            },
-            {
-              name: 'heightmap',
-              type: [
-                'option',
-                'HeightMap',
-              ],
-            },
-            {
-              name: 'render_heightmap_type',
-              type: 'HeightMapDataType',
-            },
-            {
-              name: 'render_heightmap',
-              type: [
-                'option',
-                'HeightMap',
-              ],
-            },
-            {
-              name: 'blob_id',
-              type: [
-                'option',
-                'lu64',
-              ],
-            },
-          ],
-        ],
       },
     ],
     packet_subchunk: [
@@ -14280,7 +14596,7 @@ export default {
                     type: 'string',
                   },
                   {
-                    name: 'min_y',
+                    name: 'minimum_y',
                     type: 'zigzag32',
                   },
                   {
@@ -14318,7 +14634,7 @@ export default {
                   },
                   {
                     name: 'cloud_height',
-                    type: 'varint',
+                    type: 'zigzag32',
                   },
                   {
                     name: 'render_clouds',
@@ -15875,10 +16191,10 @@ export default {
           type: [
             'mapper',
             {
-              type: 'u8',
+              type: 'varint',
               mappings: {
-                0: 'stop',
-                1: 'start',
+                0: 'start',
+                1: 'stop',
               },
             },
           ],
@@ -15975,7 +16291,7 @@ export default {
           ],
         },
         {
-          name: 'unused',
+          name: 'legacy_type',
           type: 'zigzag32',
         },
         {
@@ -16008,126 +16324,6 @@ export default {
                 3: 'player_relative',
                 4: 'player_relative_strafe',
               },
-            },
-          ],
-        },
-      ],
-    ],
-    packet_server_script_debug_drawer: [
-      'container',
-      [
-        {
-          name: 'shapes',
-          type: [
-            'array',
-            {
-              countType: 'varint',
-              type: [
-                'container',
-                [
-                  {
-                    name: 'network_id',
-                    type: 'varint64',
-                  },
-                  {
-                    name: 'shape_type',
-                    type: [
-                      'option',
-                      [
-                        'mapper',
-                        {
-                          type: 'u8',
-                          mappings: {
-                            0: 'line',
-                            1: 'box',
-                            2: 'sphere',
-                            3: 'circle',
-                            4: 'text',
-                            5: 'arrow',
-                          },
-                        },
-                      ],
-                    ],
-                  },
-                  {
-                    name: 'location',
-                    type: [
-                      'option',
-                      'vec3f',
-                    ],
-                  },
-                  {
-                    name: 'scale',
-                    type: [
-                      'option',
-                      'lf32',
-                    ],
-                  },
-                  {
-                    name: 'rotation',
-                    type: [
-                      'option',
-                      'vec3f',
-                    ],
-                  },
-                  {
-                    name: 'time_left',
-                    type: [
-                      'option',
-                      'lf32',
-                    ],
-                  },
-                  {
-                    name: 'color',
-                    type: [
-                      'option',
-                      'li32',
-                    ],
-                  },
-                  {
-                    name: 'text',
-                    type: [
-                      'option',
-                      'string',
-                    ],
-                  },
-                  {
-                    name: 'box_bound',
-                    type: [
-                      'option',
-                      'vec3f',
-                    ],
-                  },
-                  {
-                    name: 'line_end_location',
-                    type: [
-                      'option',
-                      'vec3f',
-                    ],
-                  },
-                  {
-                    name: 'arrow_head_length',
-                    type: [
-                      'option',
-                      'lf32',
-                    ],
-                  },
-                  {
-                    name: 'arrow_head_radius',
-                    type: [
-                      'option',
-                      'lf32',
-                    ],
-                  },
-                  {
-                    name: 'segment_count',
-                    type: [
-                      'option',
-                      'u8',
-                    ],
-                  },
-                ],
-              ],
             },
           ],
         },
@@ -16743,73 +16939,8 @@ export default {
           type: 'ServerSoundHandle',
         },
         {
-          name: 'type',
-          type: [
-            'mapper',
-            {
-              type: 'u8',
-              mappings: {
-                0: 'stop',
-                1: 'set_volume',
-                2: 'set_pitch',
-                3: 'fade',
-                4: 'seek_to',
-                5: 'pause',
-                6: 'resume',
-              },
-            },
-          ],
-        },
-        {
-          anon: true,
-          type: [
-            'switch',
-            {
-              compareTo: 'type',
-              fields: {
-                set_volume: [
-                  'container',
-                  [
-                    {
-                      name: 'volume',
-                      type: 'lf32',
-                    },
-                  ],
-                ],
-                set_pitch: [
-                  'container',
-                  [
-                    {
-                      name: 'pitch',
-                      type: 'lf32',
-                    },
-                  ],
-                ],
-                fade: [
-                  'container',
-                  [
-                    {
-                      name: 'duration',
-                      type: 'lf32',
-                    },
-                    {
-                      name: 'target_volume',
-                      type: 'lf32',
-                    },
-                  ],
-                ],
-                seek_to: [
-                  'container',
-                  [
-                    {
-                      name: 'seconds',
-                      type: 'lf32',
-                    },
-                  ],
-                ],
-              },
-            },
-          ],
+          name: 'update',
+          type: 'SoundDataUpdate',
         },
       ],
     ],
@@ -16862,7 +16993,7 @@ export default {
           ],
         },
         {
-          name: 'furnace_options',
+          name: 'options',
           type: 'FurnaceOptions',
         },
       ],
@@ -16943,7 +17074,7 @@ export default {
         },
         {
           name: 'recipe_index',
-          type: 'varint',
+          type: 'zigzag32',
         },
       ],
     ],
@@ -16960,7 +17091,7 @@ export default {
         },
         {
           name: 'recipe_index',
-          type: 'varint',
+          type: 'zigzag32',
         },
       ],
     ],
@@ -17035,7 +17166,7 @@ export default {
         },
         {
           name: 'loop_count',
-          type: 'varint',
+          type: 'zigzag32',
         },
         {
           name: 'bypass_listener_range_check',
@@ -17087,6 +17218,59 @@ export default {
                   },
                 ],
               ],
+            },
+          ],
+        },
+      ],
+    ],
+    packet_clientbound_debug_renderer: [
+      'container',
+      [
+        {
+          name: 'type',
+          type: 'string',
+        },
+        {
+          anon: true,
+          type: [
+            'switch',
+            {
+              compareTo: 'type',
+              fields: {
+                adddebugmarkercube: [
+                  'container',
+                  [
+                    {
+                      name: 'text',
+                      type: 'string',
+                    },
+                    {
+                      name: 'position',
+                      type: 'vec3f',
+                    },
+                    {
+                      name: 'red',
+                      type: 'lf32',
+                    },
+                    {
+                      name: 'green',
+                      type: 'lf32',
+                    },
+                    {
+                      name: 'blue',
+                      type: 'lf32',
+                    },
+                    {
+                      name: 'alpha',
+                      type: 'lf32',
+                    },
+                    {
+                      name: 'duration',
+                      type: 'lu64',
+                    },
+                  ],
+                ],
+              },
             },
           ],
         },

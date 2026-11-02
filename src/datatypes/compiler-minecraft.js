@@ -37,70 +37,6 @@ SizeOf.restBuffer = ['native', (value) => {
 }]
 
 /**
- * Length-prefixed array whose declared count is an upper bound when reading.
- * Writing and sizing remain identical to an ordinary array.
- */
-Read.maybeIncompleteArray = ['parametrizable', (compiler, { countType, type }) => {
-  return compiler.wrapCode(`
-  const { value: count, size: countSize } = ${compiler.callType(countType)}
-  if (count > 0xffffff && !ctx.noArraySizeCheck) throw new Error("array size is abnormally large, not reading: " + count)
-  const data = []
-  let size = countSize
-  for (let i = 0; i < count && offset + size < buffer.length; i++) {
-    try {
-      const elem = ${compiler.callType(type, 'offset + size')}
-      data.push(elem.value)
-      size += elem.size
-    } catch (error) {
-      if (error.name !== "PartialReadError") throw error
-      break
-    }
-  }
-  return { value: data, size }
-`.trim())
-}]
-Write.maybeIncompleteArray = ['parametrizable', (compiler, { countType, type }) => {
-  return compiler.wrapCode(`
-  offset = ${compiler.callType('value.length', countType)}
-  for (let i = 0; i < value.length; i++) {
-    offset = ${compiler.callType('value[i]', type)}
-  }
-  return offset
-`.trim())
-}]
-SizeOf.maybeIncompleteArray = ['parametrizable', (compiler, { countType, type }) => {
-  return compiler.wrapCode(`
-  let size = ${compiler.callType('value.length', countType)}
-  for (let i = 0; i < value.length; i++) {
-    size += ${compiler.callType('value[i]', type)}
-  }
-  return size
-`.trim())
-}]
-
-/**
- * Terminal field present only when unread packet bytes remain.
- */
-Read.optionalOnRemaining = ['parametrizable', (compiler, { type }) => {
-  return compiler.wrapCode(`
-  if (offset >= buffer.length) return { value: undefined, size: 0 }
-  return ${compiler.callType(type)}
-`.trim())
-}]
-Write.optionalOnRemaining = ['parametrizable', (compiler, { type }) => {
-  return compiler.wrapCode(`
-  if (value === undefined) return offset
-  return ${compiler.callType('value', type)}
-`.trim())
-}]
-SizeOf.optionalOnRemaining = ['parametrizable', (compiler, { type }) => {
-  return compiler.wrapCode(`
-  if (value === undefined) return 0
-  return ${compiler.callType('value', type)}
-`.trim())
-}]
-
-/**
  * Encapsulated data with length prefix
  */
 Read.encapsulated = ['parametrizable', (compiler, { lengthType, type }) => {
@@ -208,11 +144,11 @@ SizeOf.enum_size_based_on_values_len = ['parametrizable', (compiler) => {
   })
 }]
 
-function js (fn) {
+function js(fn) {
   return fn.toString().split('\n').slice(1, -1).join('\n').trim()
 }
 
-function str (fn) {
+function str(fn) {
   return fn.toString() + ')();(()=>{}'
 }
 
